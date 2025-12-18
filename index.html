@@ -208,7 +208,6 @@
         <div id="leaderboard-loading" class="text-slate-500 animate-pulse">Loading scores...</div>
         <div id="leaderboard-content" class="w-full max-w-xs max-h-[300px] overflow-y-auto hidden mb-4"></div>
         <div class="flex gap-3">
-            <button id="share-score-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white uppercase text-xs font-bold py-3 px-6 rounded-full tracking-widest">Challenge Friends</button>
             <button id="back-to-menu-btn" class="text-slate-400 hover:text-white uppercase text-xs font-bold py-3 px-4">Back</button>
         </div>
     </div>
@@ -221,6 +220,7 @@
                 <span class="text-xs uppercase font-bold text-slate-400">Haptics</span>
                 <input type="checkbox" id="vibration-toggle" checked>
             </div>
+            <div class="text-[10px] text-slate-600 mt-4 text-center font-mono">ID: <span id="user-id-display">...</span></div>
         </div>
         <button id="save-settings-btn" class="mt-10 btn-neon">Save</button>
     </div>
@@ -248,7 +248,6 @@
         <p id="final-score" class="text-2xl text-indigo-400 mb-8 font-bold italic">REACHED LEVEL 1</p>
         <button id="restart-btn" class="btn-neon mb-4">Try Again</button>
         <div class="flex gap-4">
-            <button id="share-gameover-btn" class="text-indigo-400 hover:text-white uppercase text-xs font-bold tracking-widest">Share Score</button>
             <button id="menu-from-over-btn" class="text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest">Main Menu</button>
         </div>
     </div>
@@ -352,22 +351,6 @@
 
     let currentShopTab = 'skins';
 
-    function shareScore() {
-        const text = `I reached Level ${highLevel} in Neon Breaker! Can you beat me?`;
-        // Create hidden textarea to copy
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-            document.execCommand('copy');
-            alert('Score copied to clipboard! Share it with friends.');
-        } catch (err) {
-            console.error('Failed to copy', err);
-        }
-        document.body.removeChild(textarea);
-    }
-
     const registerUIHandlers = () => {
         const setupBtn = (id, callback) => {
             const btn = document.getElementById(id);
@@ -442,9 +425,6 @@
             menuOverlay.classList.remove('hidden');
             persistUserData();
         });
-
-        setupBtn('share-score-btn', shareScore);
-        setupBtn('share-gameover-btn', shareScore);
 
         ffBtn.onclick = () => {
             if (gameState === 'FIRING') {
@@ -904,9 +884,12 @@
                 document.getElementById('local-best').innerText = highLevel; 
                 document.getElementById('coin-display').innerText = `🪙 ${coins}`;
                 document.getElementById('shop-coins').innerText = coins;
+                document.getElementById('user-id-display').innerText = user.uid.substring(0, 8);
 
                 if (data.settings) userSettings = {...userSettings, ...data.settings}; 
-            } 
+            } else {
+                document.getElementById('user-id-display').innerText = user.uid.substring(0, 8);
+            }
         } catch(e) {} 
     });
 
