@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Ball Breaker</title>
+    
+    <!-- PWA / Mobile App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Neon Breaker">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            margin: 0;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            background-color: #1e293b;
+            box-shadow: 0 0 30px rgba(0,0,0,0.6);
+            border-radius: 12px;
+            max-width: 100%;
+            max-height: 80vh;
+            touch-action: none;
+            display: block;
+        }
+        .ui-glow {
+            text-shadow: 0 0 10px rgba(129, 140, 248, 0.6);
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.98);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .btn-neon {
+            background: #4f46e5;
+            color: white;
+            font-weight: 900;
+            padding: 1rem 3rem;
+            border-radius: 9999px;
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .btn-neon:active { transform: scale(0.9); }
+        .leaderboard-list { width: 100%; max-width: 300px; max-height: 250px; overflow-y: auto; margin-top: 1rem; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .ff-active { background-color: #ef4444 !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6) !important; }
+        
+        .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 320px; margin-top: 1rem; }
+        .shop-item { background: #1e293b; border: 2px solid #334155; border-radius: 16px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .shop-item.owned { border-color: #475569; }
+        .shop-item.active { border-color: #818cf8; background: #2e3b52; }
+        .shop-item:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Main Menu -->
+    <div id="menu-overlay" class="overlay">
+        <h1 class="text-5xl font-black mb-2 tracking-tighter italic ui-glow">NEON BREAKER</h1>
+        <p class="text-slate-400 mb-8 uppercase text-xs tracking-[0.3em]">Master the bounce</p>
+        <div class="flex flex-col gap-3 w-full max-w-[260px]">
+            <button id="play-btn" class="btn-neon">Play Game</button>
+            <button id="shop-btn" class="bg-indigo-900/40 border border-indigo-500/50 hover:bg-indigo-800/40 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest">Shop</button>
+            <button id="leaderboard-btn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest">Leaderboard</button>
+            <button id="settings-btn" class="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold py-3 rounded-full transition-all uppercase text-xs tracking-widest">Settings</button>
+        </div>
+        <div class="mt-8 text-[10px] text-slate-500 uppercase tracking-widest">Best Level: <span id="local-best">1</span></div>
+    </div>
+
+    <!-- Shop -->
+    <div id="shop-overlay" class="overlay hidden">
+        <div class="flex justify-between w-full max-w-xs mb-4 items-center">
+            <h2 class="text-2xl font-black italic">BALL SHOP</h2>
+            <div class="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-xs font-black">
+                <span id="shop-coins">0</span> 🪙
+            </div>
+        </div>
+        <div class="shop-grid" id="shop-container"></div>
+        <button id="close-shop-btn" class="mt-8 text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest py-2">Close</button>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="leaderboard-overlay" class="overlay hidden">
+        <h2 class="text-3xl font-black mb-6 tracking-tight italic">GLOBAL RANKINGS</h2>
+        <div id="leaderboard-loading" class="text-slate-500 animate-pulse">Loading scores...</div>
+        <div id="leaderboard-content" class="leaderboard-list hidden"></div>
+        <button id="back-to-menu-btn" class="mt-8 text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest py-2">Back to Menu</button>
+    </div>
+
+    <!-- Settings -->
+    <div id="settings-overlay" class="overlay hidden">
+        <h2 class="text-3xl font-black mb-4 tracking-tight italic">SETTINGS</h2>
+        <div class="w-full max-w-[300px]">
+            <div class="text-left mb-4">
+                <label class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2 block">Player Identity</label>
+                <input type="text" id="settings-name" maxlength="12" placeholder="Update Name" class="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-xl font-bold focus:outline-none focus:border-indigo-500 transition-colors">
+            </div>
+            <div class="flex justify-between items-center py-4 border-b border-slate-700">
+                <span class="text-xs uppercase font-bold text-slate-400 tracking-widest">Haptic Feedback</span>
+                <label class="switch relative inline-block w-11 h-6">
+                    <input type="checkbox" id="vibration-toggle" checked class="opacity-0 w-0 h-0 peer">
+                    <span class="absolute inset-0 cursor-pointer bg-slate-700 rounded-full transition peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition peer-checked:after:translate-x-5"></span>
+                </label>
+            </div>
+        </div>
+        <button id="save-settings-btn" class="mt-10 btn-neon !py-3 !px-10">Back to Menu</button>
+    </div>
+
+    <!-- HUD -->
+    <div id="game-hud" class="w-full max-w-md px-4 py-2 flex justify-between items-center text-white opacity-0 transition-opacity duration-500 pointer-events-none">
+        <div class="flex flex-col">
+            <span class="text-xs uppercase tracking-widest text-slate-400 font-bold">Level</span>
+            <span id="score-val" class="text-3xl font-black tracking-tighter">1</span>
+        </div>
+        <div class="flex flex-col items-center">
+            <div id="coin-display" class="text-amber-400 font-black text-sm mb-1">🪙 0</div>
+            <div class="flex gap-2">
+                <button id="ff-btn" class="hidden pointer-events-auto bg-slate-800/50 hover:bg-slate-700 text-[10px] text-slate-300 font-bold px-3 py-1 rounded-full border border-slate-700 uppercase tracking-widest transition-all">⏩</button>
+                <button id="exit-to-menu-btn" class="pointer-events-auto bg-slate-800/50 hover:bg-slate-700 text-[10px] text-slate-300 font-bold px-4 py-1 rounded-full border border-slate-700 uppercase tracking-widest transition-all">Menu</button>
+            </div>
+        </div>
+        <div class="flex flex-col items-end">
+            <span class="text-xs uppercase tracking-widest text-slate-400 font-bold">Balls</span>
+            <span id="ball-count" class="text-3xl font-black tracking-tighter">1</span>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="game-footer" class="w-full max-w-md p-4 text-center opacity-0 transition-opacity duration-500">
+        <p id="instruction" class="text-slate-500 text-sm font-medium tracking-wide italic uppercase">Hold & Drag to Aim</p>
+    </div>
+
+    <div id="game-over" class="hidden absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center z-50 p-6 text-center">
+        <h2 class="text-6xl font-black text-white mb-2 tracking-tighter">GAME OVER</h2>
+        <p id="final-score" class="text-2xl text-indigo-400 mb-8 font-bold italic">REACHED LEVEL 1</p>
+        <button id="restart-btn" class="btn-neon mb-4">Try Again</button>
+        <button id="menu-from-over-btn" class="text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest">Main Menu</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const firebaseConfig = JSON.parse(__firebase_config);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'ball-brick-breaker';
+
+    const SKINS = [
+        { id: 'default', name: 'Classic', color: '#ffffff', price: 0 },
+        { id: 'emerald', name: 'Emerald', color: '#10b981', price: 100 },
+        { id: 'ruby', name: 'Ruby Rage', color: '#ef4444', price: 250 },
+        { id: 'void', name: 'Void Star', color: '#a855f7', price: 500 },
+        { id: 'solar', name: 'Solar Flare', color: '#f59e0b', price: 1000 }
+    ];
+
+    let currentUser = null;
+    let highLevel = 1;
+    let coins = 0;
+    let userSettings = { name: "Anonymous", vibrationEnabled: true, ownedSkins: ['default'], activeSkin: 'default' };
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score-val');
+    const ballCountEl = document.getElementById('ball-count');
+    const coinEl = document.getElementById('coin-display');
+    const gameOverEl = document.getElementById('game-over');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const lbOverlay = document.getElementById('leaderboard-overlay');
+    const stOverlay = document.getElementById('settings-overlay');
+    const shopOverlay = document.getElementById('shop-overlay');
+    const gameHud = document.getElementById('game-hud');
+    const gameFooter = document.getElementById('game-footer');
+    const ffBtn = document.getElementById('ff-btn');
+
+    let width = 400; let height = 600; let blockSize = width / 7;
+    let level = 1; let balls = []; let blocks = []; let blockGrid = {}; 
+    let particles = []; let gameState = 'MENU';
+    let startX = width / 2; let startY = height - 25; let aimX = width / 2, aimY = height - 100; 
+    let isDragging = false; let isFastForward = false;
+    let turnStartTime = 0; 
+    let nextBallsCount = 1; 
+    let ballsSpawnedThisTurn = 0;
+    let returnCount = 0; let firstBallReturned = false; let newLaunchX = -1;
+    
+    const BALL_SPEED = 10.5; const FIRE_INTERVAL = 70; const FF_THRESHOLD_MS = 3000;
+    const MAX_PARTICLES = 100;
+
+    async function persistUserData() {
+        if (!currentUser) return;
+        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'scores', currentUser.uid);
+        await setDoc(userRef, { uid: currentUser.uid, name: userSettings.name, level: highLevel, coins: coins, settings: userSettings, timestamp: Date.now() }, { merge: true });
+    }
+
+    async function showLeaderboard() {
+        const loading = document.getElementById('leaderboard-loading');
+        const content = document.getElementById('leaderboard-content');
+        loading.classList.remove('hidden'); content.classList.add('hidden');
+        try {
+            const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'scores'));
+            const scores = [];
+            querySnapshot.forEach(doc => scores.push(doc.data()));
+            scores.sort((a, b) => b.level - a.level);
+            const top10 = scores.slice(0, 10);
+            content.innerHTML = top10.map((s, idx) => `<div class="leaderboard-item"><span class="${idx < 3 ? 'text-indigo-400 font-black' : 'text-slate-400'}">${idx + 1}. ${s.name || 'Anonymous'}</span><span class="font-mono text-white">${s.level}</span></div>`).join('') || '<div class="text-slate-500 py-4 italic">No scores yet.</div>';
+            loading.classList.add('hidden'); content.classList.remove('hidden');
+        } catch (e) { loading.innerText = "Error loading leaderboard."; }
+    }
+
+    class Particle {
+        constructor(x, y, color) { 
+            this.x = x; this.y = y; this.vx = (Math.random() - 0.5) * 8; this.vy = (Math.random() - 0.5) * 8; 
+            this.life = 1.0; this.decay = 0.04 + Math.random() * 0.04; this.color = color; this.size = 2 + Math.random() * 3; 
+        }
+        update() { this.x += this.vx; this.y += this.vy; this.life -= this.decay; }
+        draw() { ctx.globalAlpha = this.life; ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.size, this.size); ctx.globalAlpha = 1.0; }
+    }
+
+    class Block {
+        constructor(col, row, value, isNew = false) {
+            this.col = col; this.row = row; this.value = value;
+            this.isBonus = Math.random() < 0.12;
+            this.visualY = isNew ? -blockSize : (row - 1) * blockSize;
+            this.targetY = row * blockSize;
+            this.impactScale = 1.0; this.pulse = Math.random() * 10;
+        }
+        update() {
+            const diff = this.targetY - this.visualY;
+            if (Math.abs(diff) > 0.3) this.visualY += diff * 0.18; else this.visualY = this.targetY;
+            this.impactScale += (1.0 - this.impactScale) * 0.2;
+            this.pulse += 0.05;
+            return Math.abs(diff) > 0.3;
+        }
+        draw() {
+            const centerX = this.col * blockSize + blockSize/2;
+            const centerY = this.visualY + blockSize/2;
+            const size = (blockSize - 8) * this.impactScale;
+            if (this.isBonus) {
+                const pulseOffset = Math.sin(this.pulse * 2) * 4;
+                ctx.beginPath(); ctx.arc(centerX, centerY, size/4 + pulseOffset, 0, Math.PI * 2);
+                ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 3; ctx.stroke();
+                ctx.fillStyle = '#fff'; ctx.fill(); return;
+            }
+            ctx.save(); ctx.translate(centerX, centerY);
+            if (level >= 100) {
+                const gShift = this.pulse * 2;
+                const g = ctx.createLinearGradient(-size/2, -size/2, size/2, size/2);
+                const h1 = (280 + gShift * 20) % 360; const h2 = (340 + gShift * 20) % 360;
+                g.addColorStop(0, `hsl(${h1}, 100%, 60%)`); g.addColorStop(1, `hsl(${h2}, 100%, 50%)`);
+                ctx.fillStyle = g; ctx.shadowBlur = 15; ctx.shadowColor = `hsl(${h1}, 100%, 60%)`;
+            } else {
+                const hue = level < 15 ? 190 : level < 30 ? 120 : level < 50 ? 45 : level < 75 ? 280 : 0;
+                const color = level >= 75 ? `hsl(45, 100%, ${60 + Math.sin(this.pulse) * 10}%)` : `hsl(${hue}, 80%, 60%)`;
+                ctx.fillStyle = color; ctx.shadowBlur = 8; ctx.shadowColor = color;
+            }
+            ctx.beginPath(); ctx.roundRect(-size/2, -size/2, size, size, 8); ctx.fill();
+            ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.floor(size/2.2)}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(this.value, 0, 0);
+            ctx.restore();
+        }
+        checkCollision(ball) {
+            const bx = this.col * blockSize + 4; const by = this.visualY + 4;
+            const bSize = blockSize - 8;
+            if (this.isBonus) {
+                const dist = Math.hypot(ball.x - (bx + bSize/2), ball.y - (by + bSize/2));
+                if (dist < 6.6 + bSize/4) {
+                    this.value = 0; nextBallsCount++; ballCountEl.innerText = nextBallsCount;
+                    createExplosion(bx + bSize/2, by + bSize/2, '#22c55e', 8);
+                }
+                return false;
+            }
+            const closestX = Math.max(bx, Math.min(ball.x, bx + bSize));
+            const closestY = Math.max(by, Math.min(ball.y, by + bSize));
+            const dx = ball.x - closestX; const dy = ball.y - closestY;
+            if ((dx * dx) + (dy * dy) < (6.6 * 6.6)) {
+                if (Math.abs(dx) > Math.abs(dy)) { ball.vx *= -1; ball.x += (dx > 0 ? (6.6 - Math.abs(dx)) : -(6.6 - Math.abs(dx))); }
+                else { ball.vy *= -1; ball.y += (dy > 0 ? (6.6 - Math.abs(dy)) : -(6.6 - Math.abs(dy))); }
+                this.value--; this.impactScale = 1.2;
+                if (userSettings.vibrationEnabled && navigator.vibrate) navigator.vibrate(10);
+                if (this.value <= 0) {
+                    coins++; coinEl.innerText = `🪙 ${coins}`;
+                    createExplosion(closestX, closestY, level >= 100 ? 'white' : 'cyan', 10);
+                }
+                return true;
+            }
+            return false;
+        }
+    }
+
+    function createExplosion(x, y, color, count) { 
+        if (particles.length > MAX_PARTICLES) return;
+        for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color)); 
+    }
+
+    class Ball {
+        constructor(x, y, vx, vy) { 
+            this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.active = true; this.trail = []; 
+            const skin = SKINS.find(s => s.id === userSettings.activeSkin) || SKINS[0];
+            this.color = skin.color;
+        }
+        update() {
+            if (!this.active) return;
+            this.trail.unshift({x: this.x, y: this.y}); if (this.trail.length > 5) this.trail.pop();
+            this.x += this.vx; this.y += this.vy;
+            if (this.x - 6.6 < 0) { this.x = 6.6; this.vx = Math.abs(this.vx); }
+            else if (this.x + 6.6 > width) { this.x = width - 6.6; this.vx = -Math.abs(this.vx); }
+            if (this.y - 6.6 < 0) { this.y = 6.6; this.vy = Math.abs(this.vy); }
+            if (this.y + 6.6 > height - 15 && this.vy > 0) {
+                this.active = false; this.y = height - 25; this.vx = 0; this.vy = 0;
+                if (!firstBallReturned) { firstBallReturned = true; newLaunchX = this.x; }
+                returnCount++;
+            }
+            if (this.active && this.y < height - 40) {
+                const gx = Math.floor(this.x / blockSize); const gy = Math.floor(this.y / blockSize);
+                for (let ox = -1; ox <= 1; ox++) {
+                    for (let oy = -1; oy <= 1; oy++) {
+                        const block = blockGrid[`${gx + ox},${gy + oy}`];
+                        if (block && block.value > 0) { if (block.checkCollision(this)) return; }
+                    }
+                }
+            }
+        }
+        draw() {
+            ctx.fillStyle = this.color; ctx.globalAlpha = 0.2;
+            for(let p of this.trail) { ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1.0; ctx.beginPath(); ctx.arc(this.x, this.y, 6.6, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
+    function rebuildGrid() { blockGrid = {}; for(let b of blocks) { if (b.value > 0) blockGrid[`${b.col},${b.row}`] = b; } }
+
+    function startShift() {
+        gameState = 'SHIFTING'; level++; scoreEl.innerText = level;
+        isFastForward = false; ffBtn.classList.remove('ff-active'); ffBtn.classList.add('hidden');
+        blocks.forEach(b => { b.row++; b.targetY = b.row * blockSize; });
+        const blockHP = Math.floor(level * 1.25);
+        const count = Math.floor(Math.random() * 4) + 2;
+        const usedCols = new Set();
+        for (let i = 0; i < count; i++) {
+            let col; do { col = Math.floor(Math.random() * 7); } while (usedCols.has(col));
+            usedCols.add(col); blocks.push(new Block(col, 0, blockHP, true));
+        }
+        rebuildGrid();
+        if (blocks.some(b => b.row >= 10 && !b.isBonus)) { gameState = 'GAME_OVER'; gameOverEl.classList.remove('hidden'); persistUserData(); }
+    }
+
+    function initGame() { 
+        level = 0; nextBallsCount = 1; ballCountEl.innerText = nextBallsCount; 
+        coinEl.innerText = `🪙 ${coins}`; blocks = []; balls = []; particles = []; startShift(); 
+    }
+
+    function fireBalls(angle) {
+        gameState = 'FIRING'; returnCount = 0; firstBallReturned = false; balls = []; turnStartTime = Date.now();
+        ballsSpawnedThisTurn = nextBallsCount;
+        const vx = Math.cos(angle) * BALL_SPEED; const vy = Math.sin(angle) * BALL_SPEED;
+        let fired = 0;
+        const interval = setInterval(() => { 
+            if (gameState !== 'FIRING') { clearInterval(interval); return; } 
+            balls.push(new Ball(startX, startY, vx, vy)); fired++; 
+            if (fired >= ballsSpawnedThisTurn) clearInterval(interval); 
+        }, FIRE_INTERVAL);
+    }
+
+    function performUpdate() {
+        for(let ball of balls) ball.update();
+        for(let i = particles.length - 1; i >= 0; i--) { particles[i].update(); if (particles[i].life <= 0) particles.splice(i, 1); }
+        let moving = false; let gridDirty = false;
+        for (let i = blocks.length - 1; i >= 0; i--) {
+            if (blocks[i].value <= 0) { blocks.splice(i, 1); gridDirty = true; }
+            else { if (blocks[i].update()) moving = true; }
+        }
+        if (gridDirty) rebuildGrid();
+        if (gameState === 'SHIFTING' && !moving) gameState = 'AIMING';
+        if (gameState === 'FIRING') { 
+            if (Date.now() - turnStartTime > FF_THRESHOLD_MS) ffBtn.classList.remove('hidden'); 
+            if (returnCount >= ballsSpawnedThisTurn) { balls = []; startX = newLaunchX; startShift(); } 
+        }
+    }
+
+    function gameLoop() {
+        ctx.clearRect(0, 0, width, height);
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'; ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.moveTo(0, height - 15); ctx.lineTo(width, height - 15); ctx.stroke(); ctx.setLineDash([]);
+        
+        const skin = SKINS.find(s => s.id === userSettings.activeSkin) || SKINS[0];
+
+        if (gameState === 'AIMING' || gameState === 'SHIFTING' || (gameState === 'FIRING' && firstBallReturned)) {
+            ctx.beginPath(); ctx.arc(firstBallReturned ? newLaunchX : startX, startY, 6.6, 0, Math.PI * 2);
+            ctx.fillStyle = skin.color; ctx.fill();
+        }
+        
+        const its = isFastForward ? 4 : 1;
+        for (let i = 0; i < its; i++) performUpdate();
+        for(let b of blocks) b.draw(); for(let p of particles) p.draw(); for(let ball of balls) ball.draw();
+        
+        if (gameState === 'AIMING' && isDragging) {
+            const angle = Math.atan2(aimY - startY, aimX - startX);
+            // 1. Arrow directly above ball
+            const ax = startX + Math.cos(angle) * 45; const ay = startY + Math.sin(angle) * 45;
+            ctx.save(); ctx.translate(ax, ay); ctx.rotate(angle); ctx.beginPath();
+            ctx.moveTo(8, 0); ctx.lineTo(-8, -6); ctx.lineTo(-8, 6); ctx.closePath();
+            ctx.fillStyle = skin.color; ctx.fill(); ctx.restore();
+            // 2. Ball-sized dots following
+            for (let d = 85; d < 400; d += 40) {
+                ctx.beginPath(); ctx.arc(startX + Math.cos(angle) * d, startY + Math.sin(angle) * d, 6.6, 0, Math.PI * 2);
+                ctx.fillStyle = skin.color; ctx.globalAlpha = 0.25 * (1 - d/400); ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+        }
+        requestAnimationFrame(gameLoop);
+    }
+
+    function handleInput(e) { 
+        if (gameState !== 'AIMING') return; 
+        const rect = canvas.getBoundingClientRect(); 
+        const cx = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX; 
+        const cy = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY; 
+        aimX = (cx - rect.left) * (width / rect.width); 
+        aimY = (cy - rect.top) * (height / rect.height); 
+        if (aimY > startY - 20) aimY = startY - 20; 
+    }
+
+    canvas.addEventListener('mousedown', (e) => { if (gameState === 'AIMING') isDragging = true; handleInput(e); });
+    window.addEventListener('mousemove', (e) => { if (isDragging) handleInput(e); });
+    window.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; fireBalls(Math.atan2(aimY - startY, aimX - startX)); } });
+    
+    // --- Optimized Touch Handling ---
+    canvas.addEventListener('touchstart', (e) => { 
+        if (gameState === 'AIMING') {
+            e.preventDefault(); // Stop mobile browser interactions
+            isDragging = true; 
+            handleInput(e);
+        }
+    }, { passive: false });
+    
+    window.addEventListener('touchmove', (e) => { 
+        if (isDragging) { 
+            e.preventDefault(); 
+            handleInput(e); 
+        } 
+    }, { passive: false });
+    
+    window.addEventListener('touchend', (e) => { 
+        if (isDragging) { 
+            isDragging = false; 
+            fireBalls(Math.atan2(aimY - startY, aimX - startX)); 
+        } 
+    }, { passive: false });
+
+    function updateShopUI() {
+        document.getElementById('shop-coins').innerText = coins;
+        const container = document.getElementById('shop-container');
+        container.innerHTML = SKINS.map(skin => {
+            const isOwned = userSettings.ownedSkins.includes(skin.id);
+            const isActive = userSettings.activeSkin === skin.id;
+            return `<div class="shop-item ${isOwned ? 'owned' : ''} ${isActive ? 'active' : ''}" data-id="${skin.id}"><div class="w-8 h-8 rounded-full mb-2 mx-auto" style="background: ${skin.color}; box-shadow: 0 0 10px ${skin.color}"></div><div class="text-[11px] font-black uppercase mb-1">${skin.name}</div><div class="text-[10px] ${isActive ? 'text-indigo-400' : 'text-slate-500'} font-bold">${isActive ? 'EQUIPPED' : isOwned ? 'EQUIP' : skin.price + ' 🪙'}</div></div>`;
+        }).join('');
+        document.querySelectorAll('.shop-item').forEach(el => {
+            el.onclick = async () => {
+                const id = el.dataset.id; const skin = SKINS.find(s => s.id === id);
+                if (userSettings.ownedSkins.includes(id)) { userSettings.activeSkin = id; }
+                else if (coins >= skin.price) { coins -= skin.price; userSettings.ownedSkins.push(id); userSettings.activeSkin = id; await persistUserData(); }
+                updateShopUI();
+            };
+        });
+    }
+
+    document.getElementById('shop-btn').addEventListener('click', () => { menuOverlay.classList.add('hidden'); shopOverlay.classList.remove('hidden'); updateShopUI(); });
+    document.getElementById('close-shop-btn').addEventListener('click', () => { shopOverlay.classList.add('hidden'); menuOverlay.classList.remove('hidden'); });
+    document.getElementById('play-btn').addEventListener('click', () => { menuOverlay.classList.add('hidden'); gameHud.classList.remove('opacity-0'); gameFooter.classList.remove('opacity-0'); initGame(); gameState = 'AIMING'; });
+    document.getElementById('leaderboard-btn').addEventListener('click', () => { menuOverlay.classList.add('hidden'); lbOverlay.classList.remove('hidden'); showLeaderboard(); });
+    document.getElementById('back-to-menu-btn').addEventListener('click', () => { lbOverlay.classList.add('hidden'); menuOverlay.classList.remove('hidden'); });
+    document.getElementById('restart-btn').addEventListener('click', () => { gameOverEl.classList.add('hidden'); initGame(); gameState = 'AIMING'; });
+    document.getElementById('menu-from-over-btn').addEventListener('click', () => { gameOverEl.classList.add('hidden'); menuOverlay.classList.remove('hidden'); gameHud.classList.add('opacity-0'); gameFooter.classList.add('opacity-0'); gameState = 'MENU'; });
+    document.getElementById('exit-to-menu-btn').addEventListener('click', () => { gameState = 'MENU'; menuOverlay.classList.remove('hidden'); gameHud.classList.add('opacity-0'); gameFooter.classList.add('opacity-0'); balls = []; blocks = []; particles = []; });
+    ffBtn.addEventListener('click', () => { if (gameState !== 'FIRING') return; isFastForward = !isFastForward; if (isFastForward) ffBtn.classList.add('ff-active'); else ffBtn.classList.remove('ff-active'); });
+    document.getElementById('settings-btn').addEventListener('click', () => { menuOverlay.classList.add('hidden'); stOverlay.classList.remove('hidden'); document.getElementById('settings-name').value = userSettings.name; });
+    document.getElementById('save-settings-btn').addEventListener('click', () => { userSettings.name = document.getElementById('settings-name').value.trim() || "Anonymous"; userSettings.vibrationEnabled = document.getElementById('vibration-toggle').checked; stOverlay.classList.add('hidden'); menuOverlay.classList.remove('hidden'); persistUserData(); });
+
+    const initAuth = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); else await signInAnonymously(auth); };
+    initAuth();
+    onAuthStateChanged(auth, async (user) => {
+        currentUser = user;
+        if (user) {
+            const scoreRef = doc(db, 'artifacts', appId, 'public', 'data', 'scores', user.uid);
+            const docSnap = await getDoc(scoreRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data(); highLevel = data.level || 1; coins = data.coins || 0; document.getElementById('local-best').innerText = highLevel;
+                if (data.settings) userSettings = {...userSettings, ...data.settings};
+                if (data.name) userSettings.name = data.name;
+            }
+        }
+    });
+
+    function resize() {
+        const h = window.innerHeight * 0.8; const w = window.innerWidth;
+        if (w / h < 400/600) { canvas.style.width = '100%'; canvas.style.height = 'auto'; }
+        else { canvas.style.height = h + 'px'; canvas.style.width = 'auto'; }
+        canvas.width = 400; canvas.height = 600; width = 400; height = 600; blockSize = width / 7;
+        startX = width / 2; startY = height - 25;
+    }
+    window.addEventListener('resize', resize); resize(); requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
