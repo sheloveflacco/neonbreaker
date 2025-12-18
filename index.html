@@ -145,6 +145,31 @@
             border-radius: 50%;
             box-shadow: 0 0 15px #f59e0b;
         }
+        
+        /* Leaderboard Specific Styles */
+        .leaderboard-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            padding: 0.75rem 0;
+            font-size: 0.85rem;
+        }
+        .leaderboard-row.is-me {
+            background: rgba(79, 70, 229, 0.1);
+            border-bottom: 1px solid #4f46e5;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2px;
+        }
+        .rank-badge {
+            width: 24px;
+            text-align: center;
+            font-weight: 900;
+            color: #94a3b8;
+        }
+        .top-rank { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
     </style>
 </head>
 <body>
@@ -159,7 +184,7 @@
             <button id="leaderboard-btn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest">Leaderboard</button>
             <button id="settings-btn" class="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold py-3 rounded-full transition-all uppercase text-xs tracking-widest">Settings</button>
         </div>
-        <div class="mt-8 text-[10px] text-slate-500 uppercase tracking-widest">Best Level: <span id="local-best">1</span></div>
+        <div class="mt-8 text-[10px] text-slate-500 uppercase tracking-widest">Best Level: <span id="local-best">...</span></div>
     </div>
 
     <div id="shop-overlay" class="overlay hidden">
@@ -178,10 +203,14 @@
     </div>
 
     <div id="leaderboard-overlay" class="overlay hidden">
-        <h2 class="text-3xl font-black mb-6 italic">GLOBAL RANKINGS</h2>
+        <h2 class="text-3xl font-black mb-2 italic">GLOBAL RANKINGS</h2>
+        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-6">Compete with friends</p>
         <div id="leaderboard-loading" class="text-slate-500 animate-pulse">Loading scores...</div>
-        <div id="leaderboard-content" class="w-full max-w-xs max-h-[250px] overflow-y-auto hidden"></div>
-        <button id="back-to-menu-btn" class="mt-8 text-slate-400 uppercase text-xs font-bold py-2">Back</button>
+        <div id="leaderboard-content" class="w-full max-w-xs max-h-[300px] overflow-y-auto hidden mb-4"></div>
+        <div class="flex gap-3">
+            <button id="share-score-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white uppercase text-xs font-bold py-3 px-6 rounded-full tracking-widest">Challenge Friends</button>
+            <button id="back-to-menu-btn" class="text-slate-400 hover:text-white uppercase text-xs font-bold py-3 px-4">Back</button>
+        </div>
     </div>
 
     <div id="settings-overlay" class="overlay hidden">
@@ -218,7 +247,10 @@
         <h2 class="text-6xl font-black text-white mb-2">GAME OVER</h2>
         <p id="final-score" class="text-2xl text-indigo-400 mb-8 font-bold italic">REACHED LEVEL 1</p>
         <button id="restart-btn" class="btn-neon mb-4">Try Again</button>
-        <button id="menu-from-over-btn" class="text-slate-400 uppercase text-xs font-bold">Main Menu</button>
+        <div class="flex gap-4">
+            <button id="share-gameover-btn" class="text-indigo-400 hover:text-white uppercase text-xs font-bold tracking-widest">Share Score</button>
+            <button id="menu-from-over-btn" class="text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest">Main Menu</button>
+        </div>
     </div>
 </div>
 
@@ -277,11 +309,7 @@
 
     function playHitSound() {
         if (!hitBuffer) return;
-        // Resume context if suspended (browser autoplay policy)
         if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
-        
-        // Simple limiting to prevent distortion from too many overlapping sounds
-        const now = audioCtx.currentTime;
         
         const source = audioCtx.createBufferSource();
         source.buffer = hitBuffer;
@@ -324,6 +352,22 @@
 
     let currentShopTab = 'skins';
 
+    function shareScore() {
+        const text = `I reached Level ${highLevel} in Neon Breaker! Can you beat me?`;
+        // Create hidden textarea to copy
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            alert('Score copied to clipboard! Share it with friends.');
+        } catch (err) {
+            console.error('Failed to copy', err);
+        }
+        document.body.removeChild(textarea);
+    }
+
     const registerUIHandlers = () => {
         const setupBtn = (id, callback) => {
             const btn = document.getElementById(id);
@@ -331,7 +375,6 @@
         };
 
         setupBtn('play-btn', () => {
-            // Resume Audio Context on user interaction
             if (audioCtx.state === 'suspended') audioCtx.resume();
             menuOverlay.classList.add('hidden');
             gameHud.classList.remove('opacity-0');
@@ -400,6 +443,9 @@
             persistUserData();
         });
 
+        setupBtn('share-score-btn', shareScore);
+        setupBtn('share-gameover-btn', shareScore);
+
         ffBtn.onclick = () => {
             if (gameState === 'FIRING') {
                 isFastForward = !isFastForward;
@@ -428,9 +474,22 @@
             const scores = [];
             querySnapshot.forEach(doc => scores.push(doc.data()));
             scores.sort((a, b) => b.level - a.level);
-            content.innerHTML = scores.slice(0, 10).map((s, idx) => `<div class="flex justify-between border-b border-slate-700 py-2"><span>${idx + 1}. ${s.name}</span><span class="font-bold">${s.level}</span></div>`).join('');
+            
+            content.innerHTML = scores.slice(0, 50).map((s, idx) => {
+                const isMe = currentUser && s.uid === currentUser.uid;
+                const rankClass = idx < 3 ? 'top-rank' : '';
+                return `
+                    <div class="leaderboard-row ${isMe ? 'is-me' : ''}">
+                        <div class="flex items-center gap-3">
+                            <span class="rank-badge ${rankClass}">#${idx + 1}</span>
+                            <span class="${isMe ? 'text-indigo-300 font-bold' : 'text-slate-300'}">${s.name || 'Anonymous'}</span>
+                        </div>
+                        <span class="font-mono text-white font-bold">${s.level}</span>
+                    </div>`;
+            }).join('');
+            
             loading.classList.add('hidden'); content.classList.remove('hidden');
-        } catch (e) { loading.innerText = "Error"; }
+        } catch (e) { loading.innerText = "Error loading data"; }
     }
 
     class Particle {
@@ -442,7 +501,7 @@
             
             if (type === 'ember') {
                 this.vx = (Math.random() - 0.5) * 1.5; 
-                this.vy = (Math.random() - 0.5) * 1.5 - 0.5; // Slight upward drift
+                this.vy = (Math.random() - 0.5) * 1.5 - 0.5;
                 this.decay = 0.02 + Math.random() * 0.02;
                 this.size = 2 + Math.random() * 3;
             } else if (type === 'spark') {
@@ -451,7 +510,6 @@
                 this.decay = 0.05 + Math.random() * 0.05;
                 this.size = 1 + Math.random() * 2;
             } else {
-                // Debris
                 this.vx = (Math.random() - 0.5) * 8; 
                 this.vy = (Math.random() - 0.5) * 8; 
                 this.decay = 0.03 + Math.random() * 0.02; 
@@ -546,14 +604,8 @@
                     ball.y = centerY + (bSize / 2 + ballRadius + 0.1) * (diffY > 0 ? 1 : -1);
                 }
                 this.value--; this.impactScale = 1.2;
-                
-                // Play sound
                 playHitSound();
-
-                if (userSettings.vibrationEnabled && navigator.vibrate) {
-                    try { navigator.vibrate(18); } catch(e) {}
-                }
-                
+                if (userSettings.vibrationEnabled && navigator.vibrate) { try { navigator.vibrate(18); } catch(e) {} }
                 if (this.value <= 0) {
                     coins++; coinEl.innerText = `🪙 ${coins}`;
                     createExplosion(closestX, closestY, 'cyan', 10);
@@ -581,25 +633,19 @@
         }
         update() {
             if (!this.active) return;
-            
             const stepX = this.vx / SUB_STEPS;
             const stepY = this.vy / SUB_STEPS;
-
             for (let s = 0; s < SUB_STEPS; s++) {
-                this.x += stepX;
-                this.y += stepY;
-
+                this.x += stepX; this.y += stepY;
                 if (this.x - 6.6 < 0) { this.x = 6.6; this.vx = Math.abs(this.vx); }
                 else if (this.x + 6.6 > width) { this.x = width - 6.6; this.vx = -Math.abs(this.vx); }
                 if (this.y - 6.6 < 0) { this.y = 6.6; this.vy = Math.abs(this.vy); }
-
                 if (this.y + 6.6 > height - 15 && this.vy > 0) {
                     this.active = false; this.y = height - 25; this.vx = 0; this.vy = 0;
                     if (!firstBallReturned) { firstBallReturned = true; newLaunchX = this.x; }
                     returnCount++;
                     break;
                 }
-
                 if (this.active && this.y < height - 40) {
                     const gx = Math.floor(this.x / blockSize); const gy = Math.floor(this.y / blockSize);
                     let collisionFound = false;
@@ -607,33 +653,21 @@
                         for (let oy = -1; oy <= 1; oy++) {
                             const block = blockGrid[`${gx + ox},${gy + oy}`];
                             if (block && block.value > 0) { 
-                                if (block.checkCollision(this)) {
-                                    collisionFound = true; 
-                                    break;
-                                }
+                                if (block.checkCollision(this)) { collisionFound = true; break; }
                             }
                         }
                         if (collisionFound) break;
                     }
                 }
             }
-
             if (this.active) {
                 this.trail.unshift({x: this.x, y: this.y}); 
                 if (this.trail.length > this.trailLength) this.trail.pop();
-                
-                // Spawn effect particles
-                if (this.effect === 'solar' && Math.random() < 0.3) {
-                    particles.push(new Particle(this.x, this.y, '#f59e0b', 'ember'));
-                }
-                if (this.effect === 'static' && Math.random() < 0.25) {
-                    particles.push(new Particle(this.x, this.y, '#60a5fa', 'spark'));
-                }
-
+                if (this.effect === 'solar' && Math.random() < 0.3) particles.push(new Particle(this.x, this.y, '#f59e0b', 'ember'));
+                if (this.effect === 'static' && Math.random() < 0.25) particles.push(new Particle(this.x, this.y, '#60a5fa', 'spark'));
             } else {
                 this.trail = [];
             }
-
             if (this.active && this.effect === 'static') {
                 if (this.boltTimer > 0) this.boltTimer--;
                 else if (Math.random() < 0.03) {
@@ -651,83 +685,49 @@
                 ctx.fillStyle = this.color; ctx.fill();
                 return;
             }
-
             if (this.effect === 'solar') {
-                // Solar Plasma Trail
                 ctx.save();
                 ctx.globalCompositeOperation = 'lighter';
-                
-                // Draw plasma stream
                 for (let i = 0; i < this.trail.length; i++) {
-                    const p = this.trail[i]; 
-                    const ratio = i / this.trail.length;
-                    const alpha = 1 - ratio;
-                    const size = Math.max(0.1, (1 - ratio) * 12);
-                    
-                    // Outer heat (Red)
-                    ctx.fillStyle = '#dc2626'; 
-                    ctx.beginPath(); ctx.arc(p.x, p.y, size * 1.5, 0, Math.PI*2); ctx.fill();
-                    
-                    // Inner fire (Orange/Yellow)
-                    ctx.fillStyle = '#fbbf24'; 
-                    ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI*2); ctx.fill();
+                    const p = this.trail[i]; const ratio = i / this.trail.length;
+                    const alpha = 1 - ratio; const size = Math.max(0.1, (1 - ratio) * 12);
+                    ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.arc(p.x, p.y, size * 1.5, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI*2); ctx.fill();
                 }
                 ctx.restore();
-                
-                // Core glow
                 ctx.save();
                 ctx.shadowBlur = 30; ctx.shadowColor = '#f59e0b';
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill();
                 ctx.restore();
-
             } else if (this.effect === 'static') {
-                // Static Storm (Thicker Multi-Bolt)
                 ctx.save();
                 ctx.globalCompositeOperation = 'lighter';
                 ctx.lineCap = 'round';
-                
-                // Generate multiple bolts for the trail to create thickness
                 const boltCount = 4;
                 if (this.trail.length > 1) {
                     for (let b = 0; b < boltCount; b++) {
-                        // Vary width and color for core vs outer bolts
                         ctx.lineWidth = b === 0 ? 3 : 1.5;
                         ctx.strokeStyle = b === 0 ? '#e0f2fe' : '#60a5fa';
                         ctx.globalAlpha = b === 0 ? 1.0 : 0.5;
-                        
                         ctx.beginPath();
                         ctx.moveTo(this.trail[0].x, this.trail[0].y);
                         for (let i = 1; i < this.trail.length; i++) {
                             const p = this.trail[i];
-                            // Randomized jitter for every segment of every bolt
                             const jitter = b === 0 ? 5 : 15;
-                            const jx = (Math.random() - 0.5) * jitter;
-                            const jy = (Math.random() - 0.5) * jitter;
-                            ctx.lineTo(p.x + jx, p.y + jy);
+                            ctx.lineTo(p.x + (Math.random() - 0.5) * jitter, p.y + (Math.random() - 0.5) * jitter);
                         }
                         ctx.stroke();
                     }
                 }
-
-                // Grounding bolt (Cluster)
                 if (this.boltTimer > 0 && this.boltTarget) {
-                    ctx.shadowBlur = 20;
-                    ctx.shadowColor = '#3b82f6';
-                    
-                    // Draw 3-4 arcs for the strike
+                    ctx.shadowBlur = 20; ctx.shadowColor = '#3b82f6';
                     for (let k = 0; k < 3; k++) {
                         ctx.lineWidth = k === 0 ? 4 : 2;
                         ctx.strokeStyle = k === 0 ? '#ffffff' : '#93c5fd';
                         ctx.globalAlpha = (this.boltTimer / 12) * (k === 0 ? 1 : 0.6);
-                        
-                        ctx.beginPath(); 
-                        ctx.moveTo(this.x, this.y);
-                        
-                        let cx = this.x;
-                        let cy = this.y;
+                        ctx.beginPath(); ctx.moveTo(this.x, this.y);
+                        let cx = this.x; let cy = this.y;
                         const steps = 5;
-                        
                         for (let s = 1; s < steps; s++) {
                             const t = s / steps;
                             const targetX = this.x + (this.boltTarget.x - this.x) * t;
@@ -737,17 +737,13 @@
                             cy = targetY + (Math.random() - 0.5) * roughness;
                             ctx.lineTo(cx, cy);
                         }
-                        ctx.lineTo(this.boltTarget.x, this.boltTarget.y); 
-                        ctx.stroke();
+                        ctx.lineTo(this.boltTarget.x, this.boltTarget.y); ctx.stroke();
                     }
                 }
-                
-                // Core
                 ctx.fillStyle = '#fff';
                 ctx.shadowBlur = 35; ctx.shadowColor = '#2563eb';
                 ctx.beginPath(); ctx.arc(this.x, this.y, 7, 0, Math.PI*2); ctx.fill();
                 ctx.restore();
-
             } else {
                 ctx.fillStyle = this.color; ctx.globalAlpha = 0.2;
                 for(let p of this.trail) { ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); }
@@ -763,25 +759,17 @@
         gameState = 'SHIFTING'; level++; scoreEl.innerText = level;
         isFastForward = false; ffBtn.classList.add('hidden');
         blocks.forEach(b => { b.row++; b.targetY = b.row * blockSize; });
-        
         const count = Math.floor(Math.random() * 4) + 2; const usedCols = new Set();
         for (let i = 0; i < count; i++) {
             let col; do { col = Math.floor(Math.random() * 7); } while (usedCols.has(col));
             usedCols.add(col); blocks.push(new Block(col, 0, Math.floor(level * 1.5), true));
         }
         rebuildGrid();
-
-        // Game ends when any standard block reaches row 9 (bottom row before red line)
+        persistUserData();
         if (blocks.some(b => b.row >= 9 && !b.isBonus)) { 
             gameState = 'GAME_OVER'; 
             gameOverEl.classList.remove('hidden'); 
-            
-            // Logic to update high score
-            if (level > highLevel) {
-                highLevel = level;
-                document.getElementById('local-best').innerText = highLevel;
-            }
-
+            if (level > highLevel) { highLevel = level; document.getElementById('local-best').innerText = highLevel; }
             finalScoreEl.innerText = `REACHED LEVEL ${level}`;
             persistUserData(); 
         }
@@ -823,17 +811,13 @@
         ctx.beginPath(); ctx.moveTo(0, height - 15); ctx.lineTo(width, height - 15); ctx.stroke(); ctx.setLineDash([]);
         const skin = SKINS.find(s => s.id === userSettings.activeSkin) || SKINS[0];
         const isSpec = userSettings.activeTrail !== 'none';
-        
-        // Static ball before firing
         if (gameState === 'AIMING' || gameState === 'SHIFTING' || (gameState === 'FIRING' && firstBallReturned)) {
             ctx.beginPath(); ctx.arc(firstBallReturned ? newLaunchX : startX, startY, 6.6, 0, Math.PI * 2);
             ctx.fillStyle = isSpec ? '#fff' : skin.color; ctx.fill();
         }
-        
         const its = isFastForward ? 5 : 1;
         for (let i = 0; i < its; i++) performUpdate();
         for(let b of blocks) b.draw(); for(let p of particles) p.draw(); for(let ball of balls) ball.draw();
-        
         if (gameState === 'AIMING' && isDragging) {
             const angle = Math.atan2(aimY - startY, aimX - startX);
             const ax = startX + Math.cos(angle) * 45; const ay = startY + Math.sin(angle) * 45;
@@ -907,7 +891,24 @@
 
     const initAuth = async () => { if (auth) try { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); else await signInAnonymously(auth); } catch(e) {} };
     initAuth();
-    if (auth) onAuthStateChanged(auth, async (user) => { currentUser = user; if (user && db) try { const docSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', user.uid)); if (docSnap.exists()) { const data = docSnap.data(); highLevel = data.level || 1; coins = data.coins || 0; document.getElementById('local-best').innerText = highLevel; if (data.settings) userSettings = {...userSettings, ...data.settings}; } } catch(e) {} });
+    if (auth) onAuthStateChanged(auth, async (user) => { 
+        currentUser = user; 
+        if (user && db) try { 
+            const docSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', user.uid)); 
+            if (docSnap.exists()) { 
+                const data = docSnap.data(); 
+                highLevel = data.level || 1; 
+                coins = data.coins || 0; 
+                
+                // Update UI immediately
+                document.getElementById('local-best').innerText = highLevel; 
+                document.getElementById('coin-display').innerText = `🪙 ${coins}`;
+                document.getElementById('shop-coins').innerText = coins;
+
+                if (data.settings) userSettings = {...userSettings, ...data.settings}; 
+            } 
+        } catch(e) {} 
+    });
 
     function resize() { const h = window.innerHeight * 0.8; canvas.style.height = h + 'px'; canvas.width = 400; canvas.height = 600; startX = 200; startY = 575; }
     window.addEventListener('resize', resize); resize(); requestAnimationFrame(gameLoop);
