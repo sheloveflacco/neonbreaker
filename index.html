@@ -300,6 +300,7 @@
     const ballCountEl = document.getElementById('ball-count');
     const coinEl = document.getElementById('coin-display');
     const gameOverEl = document.getElementById('game-over');
+    const finalScoreEl = document.getElementById('final-score');
     const menuOverlay = document.getElementById('menu-overlay');
     const lbOverlay = document.getElementById('leaderboard-overlay');
     const stOverlay = document.getElementById('settings-overlay');
@@ -774,6 +775,7 @@
         if (blocks.some(b => b.row >= 9 && !b.isBonus)) { 
             gameState = 'GAME_OVER'; 
             gameOverEl.classList.remove('hidden'); 
+            finalScoreEl.innerText = `REACHED LEVEL ${level - 1}`;
             persistUserData(); 
         }
     }
