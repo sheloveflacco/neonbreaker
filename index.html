@@ -261,9 +261,31 @@
         activeTrail: 'none'
     };
 
-    // Load Sound Effect
-    const hitSound = new Audio('https://raw.githubusercontent.com/sheloveflacco/neonbreaker/main/game%20sound.mp3');
-    hitSound.preload = 'auto';
+    // --- Audio System (Web Audio API for low latency) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let hitBuffer = null;
+    
+    fetch('https://raw.githubusercontent.com/sheloveflacco/neonbreaker/main/game%20sound.mp3')
+        .then(res => res.arrayBuffer())
+        .then(buf => audioCtx.decodeAudioData(buf))
+        .then(decoded => hitBuffer = decoded)
+        .catch(e => console.log("Audio load fail"));
+
+    function playHitSound() {
+        if (!hitBuffer) return;
+        // Resume context if suspended (browser autoplay policy)
+        if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+        
+        const source = audioCtx.createBufferSource();
+        source.buffer = hitBuffer;
+        
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0.1; // Volume
+        
+        source.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        source.start(0);
+    }
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -287,7 +309,7 @@
     let turnStartTime = 0; let nextBallsCount = 1; let ballsSpawnedThisTurn = 0;
     let returnCount = 0; let firstBallReturned = false; let newLaunchX = -1;
     
-    const BALL_SPEED = 16.0; // Increased speed
+    const BALL_SPEED = 15.0; // Slightly reduced from 16.0
     const FIRE_INTERVAL = 60; const FF_THRESHOLD_MS = 3000;
     const MAX_PARTICLES = 150;
     const SUB_STEPS = 4; 
@@ -301,6 +323,8 @@
         };
 
         setupBtn('play-btn', () => {
+            // Resume Audio Context on user interaction
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             menuOverlay.classList.add('hidden');
             gameHud.classList.remove('opacity-0');
             gameFooter.classList.remove('opacity-0');
@@ -516,9 +540,7 @@
                 this.value--; this.impactScale = 1.2;
                 
                 // Play sound
-                const s = hitSound.cloneNode();
-                s.volume = 0.1; // Prevent ear damage from 50 balls hitting at once
-                s.play().catch(() => {});
+                playHitSound();
 
                 if (userSettings.vibrationEnabled && navigator.vibrate) {
                     try { navigator.vibrate(18); } catch(e) {}
