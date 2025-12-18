@@ -775,7 +775,14 @@
         if (blocks.some(b => b.row >= 9 && !b.isBonus)) { 
             gameState = 'GAME_OVER'; 
             gameOverEl.classList.remove('hidden'); 
-            finalScoreEl.innerText = `REACHED LEVEL ${level - 1}`;
+            
+            // Logic to update high score
+            if (level > highLevel) {
+                highLevel = level;
+                document.getElementById('local-best').innerText = highLevel;
+            }
+
+            finalScoreEl.innerText = `REACHED LEVEL ${level}`;
             persistUserData(); 
         }
     }
