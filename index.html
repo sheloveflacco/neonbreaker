@@ -21,6 +21,8 @@
             overflow: hidden;
             font-family: system-ui, -apple-system, sans-serif;
             touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
         #game-container {
             position: relative;
@@ -39,6 +41,8 @@
             max-height: 80vh;
             touch-action: none;
             display: block;
+            z-index: 10;
+            cursor: crosshair;
         }
         .ui-glow {
             text-shadow: 0 0 10px rgba(129, 140, 248, 0.6);
@@ -56,6 +60,10 @@
             text-align: center;
             padding: 20px;
         }
+        /* Fallback for hidden class */
+        .hidden {
+            display: none !important;
+        }
         .btn-neon {
             background: #4f46e5;
             color: white;
@@ -66,6 +74,7 @@
             transition: all 0.2s ease;
             text-transform: uppercase;
             letter-spacing: 0.1em;
+            cursor: pointer;
         }
         .btn-neon:active { transform: scale(0.9); }
         .leaderboard-list { width: 100%; max-width: 300px; max-height: 250px; overflow-y: auto; margin-top: 1rem; }
@@ -155,11 +164,11 @@
 
     <canvas id="gameCanvas"></canvas>
 
-    <div id="game-footer" class="w-full max-w-md p-4 text-center opacity-0 transition-opacity duration-500">
+    <div id="game-footer" class="w-full max-w-md p-4 text-center opacity-0 transition-opacity duration-500 pointer-events-none">
         <p id="instruction" class="text-slate-500 text-sm font-medium tracking-wide italic uppercase">Hold & Drag to Aim</p>
     </div>
 
-    <div id="game-over" class="hidden absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center z-50 p-6 text-center">
+    <div id="game-over" class="hidden absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center z-[200] p-6 text-center">
         <h2 class="text-6xl font-black text-white mb-2 tracking-tighter">GAME OVER</h2>
         <p id="final-score" class="text-2xl text-indigo-400 mb-8 font-bold italic">REACHED LEVEL 1</p>
         <button id="restart-btn" class="btn-neon mb-4">Try Again</button>
