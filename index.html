@@ -5,14 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neon Ball Breaker</title>
     
-    <!-- PWA / Mobile App Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Neon Breaker">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0f172a">
-    <link rel="apple-touch-icon" href="https://via.placeholder.com/192">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -35,7 +27,7 @@
         }
         canvas {
             background-color: #1e293b;
-            box-shadow: 0 0 30px rgba(0,0,0,0.6);
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
             border-radius: 12px;
             max-width: 100%;
             max-height: 80vh;
@@ -45,7 +37,7 @@
             cursor: crosshair;
         }
         .ui-glow {
-            text-shadow: 0 0 10px rgba(129, 140, 248, 0.6);
+            text-shadow: 0 0 15px rgba(129, 140, 248, 0.8);
         }
         .overlay {
             position: absolute;
@@ -60,14 +52,11 @@
             text-align: center;
             padding: 20px;
         }
-        /* Higher z-index for sub-menus to ensure they sit on top of main menu */
         #shop-overlay, #leaderboard-overlay, #settings-overlay {
             z-index: 110;
         }
-        /* Fallback for hidden class */
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
+        
         .btn-neon {
             background: #4f46e5;
             color: white;
@@ -80,107 +69,156 @@
             letter-spacing: 0.1em;
             cursor: pointer;
             border: none;
-            outline: none;
-            pointer-events: auto;
         }
         .btn-neon:active { transform: scale(0.95); background: #4338ca; }
         
-        .leaderboard-list { width: 100%; max-width: 300px; max-height: 250px; overflow-y: auto; margin-top: 1rem; }
-        .leaderboard-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .ff-active { background-color: #ef4444 !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6) !important; }
-        
+        .shop-tab-btn {
+            padding: 0.5rem 1.5rem;
+            border-bottom: 2px solid transparent;
+            color: #64748b;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            transition: all 0.2s;
+        }
+        .shop-tab-btn.active {
+            color: #818cf8;
+            border-color: #818cf8;
+        }
+
         .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 320px; margin-top: 1rem; }
-        .shop-item { background: #1e293b; border: 2px solid #334155; border-radius: 16px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; pointer-events: auto; }
+        .shop-item { 
+            background: #1e293b; 
+            border: 2px solid #334155; 
+            border-radius: 16px; 
+            padding: 12px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            position: relative; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
         .shop-item.owned { border-color: #475569; }
-        .shop-item.active { border-color: #818cf8; background: #2e3b52; }
+        .shop-item.active { border-color: #818cf8; background: #2e3b52; box-shadow: 0 0 15px rgba(129, 140, 248, 0.2); }
         .shop-item:active { transform: scale(0.95); }
+
+        .thumbnail-box {
+            width: 100%;
+            height: 50px;
+            background: #0f172a;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .thunder-thumb {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #1e3a8a, #60a5fa);
+            position: relative;
+        }
+        .thunder-thumb::after {
+            content: "⚡";
+            font-size: 1.5rem;
+            filter: drop-shadow(0 0 5px white);
+        }
+
+        .solar-thumb {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #fff, #f59e0b, #991b1b);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .solar-thumb::after {
+            content: "";
+            width: 20px;
+            height: 20px;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #f59e0b;
+        }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <!-- Main Menu -->
     <div id="menu-overlay" class="overlay">
         <h1 class="text-5xl font-black mb-2 tracking-tighter italic ui-glow">NEON BREAKER</h1>
         <p class="text-slate-400 mb-8 uppercase text-xs tracking-[0.3em]">Master the bounce</p>
         <div class="flex flex-col gap-3 w-full max-w-[260px]">
             <button id="play-btn" class="btn-neon">Play Game</button>
-            <button id="shop-btn" class="bg-indigo-900/40 border border-indigo-500/50 hover:bg-indigo-800/40 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest pointer-events-auto">Shop</button>
-            <button id="leaderboard-btn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest pointer-events-auto">Leaderboard</button>
-            <button id="settings-btn" class="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold py-3 rounded-full transition-all uppercase text-xs tracking-widest pointer-events-auto">Settings</button>
+            <button id="shop-btn" class="bg-indigo-900/40 border border-indigo-500/50 hover:bg-indigo-800/40 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest">Shop</button>
+            <button id="leaderboard-btn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest">Leaderboard</button>
+            <button id="settings-btn" class="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold py-3 rounded-full transition-all uppercase text-xs tracking-widest">Settings</button>
         </div>
         <div class="mt-8 text-[10px] text-slate-500 uppercase tracking-widest">Best Level: <span id="local-best">1</span></div>
     </div>
 
-    <!-- Shop -->
     <div id="shop-overlay" class="overlay hidden">
         <div class="flex justify-between w-full max-w-xs mb-4 items-center">
-            <h2 class="text-2xl font-black italic">BALL SHOP</h2>
+            <h2 class="text-2xl font-black italic">GEAR SHOP</h2>
             <div class="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-xs font-black">
                 <span id="shop-coins">0</span> 🪙
             </div>
         </div>
+        <div class="flex gap-4 mb-2" id="shop-tabs">
+            <button id="tab-skins" class="shop-tab-btn active">Balls</button>
+            <button id="tab-trails" class="shop-tab-btn">Trails</button>
+        </div>
         <div class="shop-grid" id="shop-container"></div>
-        <button id="close-shop-btn" class="mt-8 text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest py-2 pointer-events-auto">Close</button>
+        <button id="close-shop-btn" class="mt-6 text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest py-2">Close</button>
     </div>
 
-    <!-- Leaderboard -->
     <div id="leaderboard-overlay" class="overlay hidden">
-        <h2 class="text-3xl font-black mb-6 tracking-tight italic">GLOBAL RANKINGS</h2>
+        <h2 class="text-3xl font-black mb-6 italic">GLOBAL RANKINGS</h2>
         <div id="leaderboard-loading" class="text-slate-500 animate-pulse">Loading scores...</div>
-        <div id="leaderboard-content" class="leaderboard-list hidden"></div>
-        <button id="back-to-menu-btn" class="mt-8 text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest py-2 pointer-events-auto">Back to Menu</button>
+        <div id="leaderboard-content" class="w-full max-w-xs max-h-[250px] overflow-y-auto hidden"></div>
+        <button id="back-to-menu-btn" class="mt-8 text-slate-400 uppercase text-xs font-bold py-2">Back</button>
     </div>
 
-    <!-- Settings -->
     <div id="settings-overlay" class="overlay hidden">
-        <h2 class="text-3xl font-black mb-4 tracking-tight italic">SETTINGS</h2>
+        <h2 class="text-3xl font-black mb-4 italic">SETTINGS</h2>
         <div class="w-full max-w-[300px]">
-            <div class="text-left mb-4">
-                <label class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2 block">Player Identity</label>
-                <input type="text" id="settings-name" maxlength="12" placeholder="Update Name" class="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-xl font-bold focus:outline-none focus:border-indigo-500 transition-colors pointer-events-auto">
-            </div>
+            <input type="text" id="settings-name" maxlength="12" placeholder="Update Name" class="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-xl mb-4 font-bold">
             <div class="flex justify-between items-center py-4 border-b border-slate-700">
-                <span class="text-xs uppercase font-bold text-slate-400 tracking-widest">Haptic Feedback</span>
-                <label class="switch relative inline-block w-11 h-6">
-                    <input type="checkbox" id="vibration-toggle" checked class="opacity-0 w-0 h-0 peer pointer-events-auto">
-                    <span class="absolute inset-0 cursor-pointer bg-slate-700 rounded-full transition peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition peer-checked:after:translate-x-5"></span>
-                </label>
+                <span class="text-xs uppercase font-bold text-slate-400">Haptics</span>
+                <input type="checkbox" id="vibration-toggle" checked>
             </div>
         </div>
-        <button id="save-settings-btn" class="mt-10 btn-neon !py-3 !px-10">Back to Menu</button>
+        <button id="save-settings-btn" class="mt-10 btn-neon">Save</button>
     </div>
 
-    <!-- HUD -->
-    <div id="game-hud" class="w-full max-w-md px-4 py-2 flex justify-between items-center text-white opacity-0 transition-opacity duration-500 pointer-events-none">
-        <div class="flex flex-col">
-            <span class="text-xs uppercase tracking-widest text-slate-400 font-bold">Level</span>
-            <span id="score-val" class="text-3xl font-black tracking-tighter">1</span>
-        </div>
+    <div id="game-hud" class="w-full max-w-md px-4 py-2 flex justify-between items-center text-white opacity-0 pointer-events-none">
+        <div><span class="text-xs font-bold text-slate-500">LVL</span><br><span id="score-val" class="text-3xl font-black">1</span></div>
         <div class="flex flex-col items-center">
-            <div id="coin-display" class="text-amber-400 font-black text-sm mb-1">🪙 0</div>
+            <div id="coin-display" class="text-amber-400 font-black text-sm">🪙 0</div>
             <div class="flex gap-2">
-                <button id="ff-btn" class="hidden pointer-events-auto bg-slate-800/50 hover:bg-slate-700 text-[10px] text-slate-300 font-bold px-3 py-1 rounded-full border border-slate-700 uppercase tracking-widest transition-all">⏩</button>
-                <button id="exit-to-menu-btn" class="pointer-events-auto bg-slate-800/50 hover:bg-slate-700 text-[10px] text-slate-300 font-bold px-4 py-1 rounded-full border border-slate-700 uppercase tracking-widest transition-all">Menu</button>
+                <button id="ff-btn" class="hidden pointer-events-auto bg-slate-800 px-3 py-1 rounded-full text-[10px] font-bold">⏩</button>
+                <button id="exit-to-menu-btn" class="pointer-events-auto bg-slate-800 px-4 py-1 rounded-full text-[10px] font-bold uppercase">Menu</button>
             </div>
         </div>
-        <div class="flex flex-col items-end">
-            <span class="text-xs uppercase tracking-widest text-slate-400 font-bold">Balls</span>
-            <span id="ball-count" class="text-3xl font-black tracking-tighter">1</span>
-        </div>
+        <div><span class="text-xs font-bold text-slate-500">BALLS</span><br><span id="ball-count" class="text-3xl font-black text-right block">1</span></div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
 
-    <div id="game-footer" class="w-full max-w-md p-4 text-center opacity-0 transition-opacity duration-500 pointer-events-none">
-        <p id="instruction" class="text-slate-500 text-sm font-medium tracking-wide italic uppercase">Hold & Drag to Aim</p>
+    <div id="game-footer" class="w-full max-w-md p-4 text-center opacity-0 pointer-events-none">
+        <p class="text-slate-500 text-sm font-bold italic uppercase tracking-widest">Hold & Drag to Aim</p>
     </div>
 
-    <div id="game-over" class="hidden absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center z-[200] p-6 text-center">
-        <h2 class="text-6xl font-black text-white mb-2 tracking-tighter">GAME OVER</h2>
+    <div id="game-over" class="hidden absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center z-[200] p-6">
+        <h2 class="text-6xl font-black text-white mb-2">GAME OVER</h2>
         <p id="final-score" class="text-2xl text-indigo-400 mb-8 font-bold italic">REACHED LEVEL 1</p>
         <button id="restart-btn" class="btn-neon mb-4">Try Again</button>
-        <button id="menu-from-over-btn" class="text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest pointer-events-auto">Main Menu</button>
+        <button id="menu-from-over-btn" class="text-slate-400 uppercase text-xs font-bold">Main Menu</button>
     </div>
 </div>
 
@@ -189,7 +227,6 @@
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- Safety initialization ---
     let db, auth, appId;
     try {
         const firebaseConfig = JSON.parse(__firebase_config || "{}");
@@ -197,22 +234,36 @@
         auth = getAuth(app);
         db = getFirestore(app);
         appId = typeof __app_id !== 'undefined' ? __app_id : 'ball-brick-breaker';
-    } catch (e) {
-        console.error("Firebase init failed, running in local-only mode.");
-    }
+    } catch (e) { console.error("Firebase fail"); }
 
     const SKINS = [
         { id: 'default', name: 'Classic', color: '#ffffff', price: 0 },
         { id: 'emerald', name: 'Emerald', color: '#10b981', price: 100 },
         { id: 'ruby', name: 'Ruby Rage', color: '#ef4444', price: 250 },
-        { id: 'void', name: 'Void Star', color: '#a855f7', price: 500 },
-        { id: 'solar', name: 'Solar Flare', color: '#f59e0b', price: 1000 }
+        { id: 'void', name: 'Void Star', color: '#a855f7', price: 500 }
+    ];
+
+    const TRAILS = [
+        { id: 'none', name: 'Basic', price: 0, effect: 'none' },
+        { id: 'solar', name: 'Solar Flare', price: 10000, effect: 'solar' },
+        { id: 'static', name: 'Static Storm', price: 10000, effect: 'static' }
     ];
 
     let currentUser = null;
     let highLevel = 1;
     let coins = 0;
-    let userSettings = { name: "Anonymous", vibrationEnabled: true, ownedSkins: ['default'], activeSkin: 'default' };
+    let userSettings = { 
+        name: "Anonymous", 
+        vibrationEnabled: true, 
+        ownedSkins: ['default'], 
+        activeSkin: 'default',
+        ownedTrails: ['none'],
+        activeTrail: 'none'
+    };
+
+    // Load Sound Effect
+    const hitSound = new Audio('https://raw.githubusercontent.com/sheloveflacco/neonbreaker/main/game%20sound.mp3');
+    hitSound.preload = 'auto';
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -233,24 +284,20 @@
     let particles = []; let gameState = 'MENU';
     let startX = width / 2; let startY = height - 25; let aimX = width / 2, aimY = height - 100; 
     let isDragging = false; let isFastForward = false;
-    let turnStartTime = 0; 
-    let nextBallsCount = 1; 
-    let ballsSpawnedThisTurn = 0;
+    let turnStartTime = 0; let nextBallsCount = 1; let ballsSpawnedThisTurn = 0;
     let returnCount = 0; let firstBallReturned = false; let newLaunchX = -1;
     
-    const BALL_SPEED = 10.5; const FIRE_INTERVAL = 70; const FF_THRESHOLD_MS = 3000;
-    const MAX_PARTICLES = 100;
+    const BALL_SPEED = 16.0; // Increased speed
+    const FIRE_INTERVAL = 60; const FF_THRESHOLD_MS = 3000;
+    const MAX_PARTICLES = 150;
+    const SUB_STEPS = 4; 
 
-    // --- UI Button Handlers (Immediate setup for responsiveness) ---
+    let currentShopTab = 'skins';
+
     const registerUIHandlers = () => {
         const setupBtn = (id, callback) => {
             const btn = document.getElementById(id);
-            if (!btn) return;
-            // Use pointerdown for faster feel, but click as primary
-            btn.onclick = (e) => {
-                e.preventDefault();
-                callback();
-            };
+            if (btn) btn.onclick = (e) => { e.preventDefault(); callback(); };
         };
 
         setupBtn('play-btn', () => {
@@ -276,7 +323,6 @@
         setupBtn('settings-btn', () => {
             menuOverlay.classList.add('hidden');
             stOverlay.classList.remove('hidden');
-            document.getElementById('settings-name').value = userSettings.name;
         });
 
         setupBtn('close-shop-btn', () => {
@@ -308,8 +354,11 @@
             menuOverlay.classList.remove('hidden');
             gameHud.classList.add('opacity-0');
             gameFooter.classList.add('opacity-0');
-            balls = []; blocks = []; particles = [];
+            balls = []; blocks = [];
         });
+
+        setupBtn('tab-skins', () => { currentShopTab = 'skins'; updateShopUI(); });
+        setupBtn('tab-trails', () => { currentShopTab = 'trails'; updateShopUI(); });
 
         setupBtn('save-settings-btn', () => {
             userSettings.name = document.getElementById('settings-name').value.trim() || "Anonymous";
@@ -320,9 +369,10 @@
         });
 
         ffBtn.onclick = () => {
-            if (gameState !== 'FIRING') return;
-            isFastForward = !isFastForward;
-            ffBtn.classList.toggle('ff-active', isFastForward);
+            if (gameState === 'FIRING') {
+                isFastForward = !isFastForward;
+                ffBtn.classList.toggle('bg-red-600', isFastForward);
+            }
         };
     };
 
@@ -339,26 +389,60 @@
     async function showLeaderboard() {
         const loading = document.getElementById('leaderboard-loading');
         const content = document.getElementById('leaderboard-content');
-        if (!db) { loading.innerText = "Leaderboard unavailable offline."; return; }
+        if (!db) { loading.innerText = "Offline"; return; }
         loading.classList.remove('hidden'); content.classList.add('hidden');
         try {
             const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'scores'));
             const scores = [];
             querySnapshot.forEach(doc => scores.push(doc.data()));
             scores.sort((a, b) => b.level - a.level);
-            const top10 = scores.slice(0, 10);
-            content.innerHTML = top10.map((s, idx) => `<div class="leaderboard-item"><span class="${idx < 3 ? 'text-indigo-400 font-black' : 'text-slate-400'}">${idx + 1}. ${s.name || 'Anonymous'}</span><span class="font-mono text-white">${s.level}</span></div>`).join('') || '<div class="text-slate-500 py-4 italic">No scores yet.</div>';
+            content.innerHTML = scores.slice(0, 10).map((s, idx) => `<div class="flex justify-between border-b border-slate-700 py-2"><span>${idx + 1}. ${s.name}</span><span class="font-bold">${s.level}</span></div>`).join('');
             loading.classList.add('hidden'); content.classList.remove('hidden');
-        } catch (e) { loading.innerText = "Error loading leaderboard."; }
+        } catch (e) { loading.innerText = "Error"; }
     }
 
     class Particle {
-        constructor(x, y, color) { 
-            this.x = x; this.y = y; this.vx = (Math.random() - 0.5) * 8; this.vy = (Math.random() - 0.5) * 8; 
-            this.life = 1.0; this.decay = 0.04 + Math.random() * 0.04; this.color = color; this.size = 2 + Math.random() * 3; 
+        constructor(x, y, color, type = 'standard') { 
+            this.x = x; this.y = y; 
+            this.color = color;
+            this.type = type;
+            this.life = 1.0; 
+            
+            if (type === 'ember') {
+                this.vx = (Math.random() - 0.5) * 1.5; 
+                this.vy = (Math.random() - 0.5) * 1.5 - 0.5; // Slight upward drift
+                this.decay = 0.02 + Math.random() * 0.02;
+                this.size = 2 + Math.random() * 3;
+            } else if (type === 'spark') {
+                this.vx = (Math.random() - 0.5) * 6;
+                this.vy = (Math.random() - 0.5) * 6;
+                this.decay = 0.05 + Math.random() * 0.05;
+                this.size = 1 + Math.random() * 2;
+            } else {
+                // Debris
+                this.vx = (Math.random() - 0.5) * 8; 
+                this.vy = (Math.random() - 0.5) * 8; 
+                this.decay = 0.03 + Math.random() * 0.02; 
+                this.size = 3 + Math.random() * 4; 
+            }
         }
-        update() { this.x += this.vx; this.y += this.vy; this.life -= this.decay; }
-        draw() { ctx.globalAlpha = this.life; ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.size, this.size); ctx.globalAlpha = 1.0; }
+        update() { 
+            this.x += this.vx; this.y += this.vy; 
+            this.life -= this.decay; 
+            if (this.type === 'ember') this.size *= 0.95; 
+        }
+        draw() { 
+            ctx.globalAlpha = this.life; 
+            ctx.fillStyle = this.color; 
+            if (this.type === 'spark' || this.type === 'ember') {
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            } else {
+                ctx.fillRect(this.x, this.y, this.size, this.size); 
+            }
+            ctx.globalAlpha = 1.0; 
+        }
     }
 
     class Block {
@@ -387,44 +471,62 @@
                 ctx.fillStyle = '#fff'; ctx.fill(); return;
             }
             ctx.save(); ctx.translate(centerX, centerY);
-            if (level >= 100) {
-                const gShift = this.pulse * 2;
-                const g = ctx.createLinearGradient(-size/2, -size/2, size/2, size/2);
-                const h1 = (280 + gShift * 20) % 360; const h2 = (340 + gShift * 20) % 360;
-                g.addColorStop(0, `hsl(${h1}, 100%, 60%)`); g.addColorStop(1, `hsl(${h2}, 100%, 50%)`);
-                ctx.fillStyle = g; ctx.shadowBlur = 15; ctx.shadowColor = `hsl(${h1}, 100%, 60%)`;
-            } else {
-                const hue = level < 15 ? 190 : level < 30 ? 120 : level < 50 ? 45 : level < 75 ? 280 : 0;
-                const color = level >= 75 ? `hsl(45, 100%, ${60 + Math.sin(this.pulse) * 10}%)` : `hsl(${hue}, 80%, 60%)`;
-                ctx.fillStyle = color; ctx.shadowBlur = 8; ctx.shadowColor = color;
-            }
-            ctx.beginPath(); ctx.roundRect(-size/2, -size/2, size, size, 8); ctx.fill();
-            ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.floor(size/2.2)}px sans-serif`;
+            const hue = level < 20 ? 190 : level < 50 ? 120 : level < 80 ? 45 : 0;
+            const color = `hsl(${hue}, 80%, 60%)`;
+            ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(-size/2, -size/2, size, size, 8); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.floor(size/2.2)}px sans-serif`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(this.value, 0, 0);
             ctx.restore();
         }
         checkCollision(ball) {
-            const bx = this.col * blockSize + 4; const by = this.visualY + 4;
+            const bx = this.col * blockSize + 4;
+            const by = this.visualY + 4;
             const bSize = blockSize - 8;
+            const ballRadius = 6.6;
+
             if (this.isBonus) {
                 const dist = Math.hypot(ball.x - (bx + bSize/2), ball.y - (by + bSize/2));
-                if (dist < 6.6 + bSize/4) {
+                if (dist < ballRadius + bSize/4) {
                     this.value = 0; nextBallsCount++; ballCountEl.innerText = nextBallsCount;
                     createExplosion(bx + bSize/2, by + bSize/2, '#22c55e', 8);
                 }
                 return false;
             }
+
             const closestX = Math.max(bx, Math.min(ball.x, bx + bSize));
             const closestY = Math.max(by, Math.min(ball.y, by + bSize));
             const dx = ball.x - closestX; const dy = ball.y - closestY;
-            if ((dx * dx) + (dy * dy) < (6.6 * 6.6)) {
-                if (Math.abs(dx) > Math.abs(dy)) { ball.vx *= -1; ball.x += (dx > 0 ? (6.6 - Math.abs(dx)) : -(6.6 - Math.abs(dx))); }
-                else { ball.vy *= -1; ball.y += (dy > 0 ? (6.6 - Math.abs(dy)) : -(6.6 - Math.abs(dy))); }
+            const distSq = dx * dx + dy * dy;
+
+            if (distSq < (ballRadius * ballRadius)) {
+                const centerX = bx + bSize / 2;
+                const centerY = by + bSize / 2;
+                const diffX = ball.x - centerX;
+                const diffY = ball.y - centerY;
+                const overlapX = (bSize / 2 + ballRadius) - Math.abs(diffX);
+                const overlapY = (bSize / 2 + ballRadius) - Math.abs(diffY);
+
+                if (overlapX < overlapY) {
+                    ball.vx = Math.abs(ball.vx) * (diffX > 0 ? 1 : -1);
+                    ball.x = centerX + (bSize / 2 + ballRadius + 0.1) * (diffX > 0 ? 1 : -1);
+                } else {
+                    ball.vy = Math.abs(ball.vy) * (diffY > 0 ? 1 : -1);
+                    ball.y = centerY + (bSize / 2 + ballRadius + 0.1) * (diffY > 0 ? 1 : -1);
+                }
                 this.value--; this.impactScale = 1.2;
-                if (userSettings.vibrationEnabled && navigator.vibrate) navigator.vibrate(10);
+                
+                // Play sound
+                const s = hitSound.cloneNode();
+                s.volume = 0.1; // Prevent ear damage from 50 balls hitting at once
+                s.play().catch(() => {});
+
+                if (userSettings.vibrationEnabled && navigator.vibrate) {
+                    try { navigator.vibrate(18); } catch(e) {}
+                }
+                
                 if (this.value <= 0) {
                     coins++; coinEl.innerText = `🪙 ${coins}`;
-                    createExplosion(closestX, closestY, level >= 100 ? 'white' : 'cyan', 10);
+                    createExplosion(closestX, closestY, 'cyan', 10);
                 }
                 return true;
             }
@@ -441,34 +543,187 @@
         constructor(x, y, vx, vy) { 
             this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.active = true; this.trail = []; 
             const skin = SKINS.find(s => s.id === userSettings.activeSkin) || SKINS[0];
+            const trailInfo = TRAILS.find(t => t.id === userSettings.activeTrail) || TRAILS[0];
             this.color = skin.color;
+            this.effect = trailInfo.effect || 'none';
+            this.trailLength = (this.effect !== 'none') ? 20 : 6;
+            this.boltTimer = 0; this.boltTarget = null;
         }
         update() {
             if (!this.active) return;
-            this.trail.unshift({x: this.x, y: this.y}); if (this.trail.length > 5) this.trail.pop();
-            this.x += this.vx; this.y += this.vy;
-            if (this.x - 6.6 < 0) { this.x = 6.6; this.vx = Math.abs(this.vx); }
-            else if (this.x + 6.6 > width) { this.x = width - 6.6; this.vx = -Math.abs(this.vx); }
-            if (this.y - 6.6 < 0) { this.y = 6.6; this.vy = Math.abs(this.vy); }
-            if (this.y + 6.6 > height - 15 && this.vy > 0) {
-                this.active = false; this.y = height - 25; this.vx = 0; this.vy = 0;
-                if (!firstBallReturned) { firstBallReturned = true; newLaunchX = this.x; }
-                returnCount++;
-            }
-            if (this.active && this.y < height - 40) {
-                const gx = Math.floor(this.x / blockSize); const gy = Math.floor(this.y / blockSize);
-                for (let ox = -1; ox <= 1; ox++) {
-                    for (let oy = -1; oy <= 1; oy++) {
-                        const block = blockGrid[`${gx + ox},${gy + oy}`];
-                        if (block && block.value > 0) { if (block.checkCollision(this)) return; }
+            
+            const stepX = this.vx / SUB_STEPS;
+            const stepY = this.vy / SUB_STEPS;
+
+            for (let s = 0; s < SUB_STEPS; s++) {
+                this.x += stepX;
+                this.y += stepY;
+
+                if (this.x - 6.6 < 0) { this.x = 6.6; this.vx = Math.abs(this.vx); }
+                else if (this.x + 6.6 > width) { this.x = width - 6.6; this.vx = -Math.abs(this.vx); }
+                if (this.y - 6.6 < 0) { this.y = 6.6; this.vy = Math.abs(this.vy); }
+
+                if (this.y + 6.6 > height - 15 && this.vy > 0) {
+                    this.active = false; this.y = height - 25; this.vx = 0; this.vy = 0;
+                    if (!firstBallReturned) { firstBallReturned = true; newLaunchX = this.x; }
+                    returnCount++;
+                    break;
+                }
+
+                if (this.active && this.y < height - 40) {
+                    const gx = Math.floor(this.x / blockSize); const gy = Math.floor(this.y / blockSize);
+                    let collisionFound = false;
+                    for (let ox = -1; ox <= 1; ox++) {
+                        for (let oy = -1; oy <= 1; oy++) {
+                            const block = blockGrid[`${gx + ox},${gy + oy}`];
+                            if (block && block.value > 0) { 
+                                if (block.checkCollision(this)) {
+                                    collisionFound = true; 
+                                    break;
+                                }
+                            }
+                        }
+                        if (collisionFound) break;
                     }
+                }
+            }
+
+            if (this.active) {
+                this.trail.unshift({x: this.x, y: this.y}); 
+                if (this.trail.length > this.trailLength) this.trail.pop();
+                
+                // Spawn effect particles
+                if (this.effect === 'solar' && Math.random() < 0.3) {
+                    particles.push(new Particle(this.x, this.y, '#f59e0b', 'ember'));
+                }
+                if (this.effect === 'static' && Math.random() < 0.25) {
+                    particles.push(new Particle(this.x, this.y, '#60a5fa', 'spark'));
+                }
+
+            } else {
+                this.trail = [];
+            }
+
+            if (this.active && this.effect === 'static') {
+                if (this.boltTimer > 0) this.boltTimer--;
+                else if (Math.random() < 0.03) {
+                    this.boltTimer = 8;
+                    const wall = Math.random();
+                    if (wall < 0.4) this.boltTarget = {x: 0, y: this.y + (Math.random()-0.5)*150};
+                    else if (wall < 0.8) this.boltTarget = {x: width, y: this.y + (Math.random()-0.5)*150};
+                    else this.boltTarget = {x: this.x + (Math.random()-0.5)*150, y: 0};
                 }
             }
         }
         draw() {
-            ctx.fillStyle = this.color; ctx.globalAlpha = 0.2;
-            for(let p of this.trail) { ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); }
-            ctx.globalAlpha = 1.0; ctx.beginPath(); ctx.arc(this.x, this.y, 6.6, 0, Math.PI * 2); ctx.fill();
+            if (!this.active) {
+                ctx.globalAlpha = 1.0; ctx.beginPath(); ctx.arc(this.x, this.y, 6.6, 0, Math.PI * 2);
+                ctx.fillStyle = this.color; ctx.fill();
+                return;
+            }
+
+            if (this.effect === 'solar') {
+                // Solar Plasma Trail
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                
+                // Draw plasma stream
+                for (let i = 0; i < this.trail.length; i++) {
+                    const p = this.trail[i]; 
+                    const ratio = i / this.trail.length;
+                    const alpha = 1 - ratio;
+                    const size = Math.max(0.1, (1 - ratio) * 12);
+                    
+                    // Outer heat (Red)
+                    ctx.fillStyle = '#dc2626'; 
+                    ctx.beginPath(); ctx.arc(p.x, p.y, size * 1.5, 0, Math.PI*2); ctx.fill();
+                    
+                    // Inner fire (Orange/Yellow)
+                    ctx.fillStyle = '#fbbf24'; 
+                    ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI*2); ctx.fill();
+                }
+                ctx.restore();
+                
+                // Core glow
+                ctx.save();
+                ctx.shadowBlur = 30; ctx.shadowColor = '#f59e0b';
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill();
+                ctx.restore();
+
+            } else if (this.effect === 'static') {
+                // Static Storm (Thicker Multi-Bolt)
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.lineCap = 'round';
+                
+                // Generate multiple bolts for the trail to create thickness
+                const boltCount = 4;
+                if (this.trail.length > 1) {
+                    for (let b = 0; b < boltCount; b++) {
+                        // Vary width and color for core vs outer bolts
+                        ctx.lineWidth = b === 0 ? 3 : 1.5;
+                        ctx.strokeStyle = b === 0 ? '#e0f2fe' : '#60a5fa';
+                        ctx.globalAlpha = b === 0 ? 1.0 : 0.5;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                        for (let i = 1; i < this.trail.length; i++) {
+                            const p = this.trail[i];
+                            // Randomized jitter for every segment of every bolt
+                            const jitter = b === 0 ? 5 : 15;
+                            const jx = (Math.random() - 0.5) * jitter;
+                            const jy = (Math.random() - 0.5) * jitter;
+                            ctx.lineTo(p.x + jx, p.y + jy);
+                        }
+                        ctx.stroke();
+                    }
+                }
+
+                // Grounding bolt (Cluster)
+                if (this.boltTimer > 0 && this.boltTarget) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = '#3b82f6';
+                    
+                    // Draw 3-4 arcs for the strike
+                    for (let k = 0; k < 3; k++) {
+                        ctx.lineWidth = k === 0 ? 4 : 2;
+                        ctx.strokeStyle = k === 0 ? '#ffffff' : '#93c5fd';
+                        ctx.globalAlpha = (this.boltTimer / 12) * (k === 0 ? 1 : 0.6);
+                        
+                        ctx.beginPath(); 
+                        ctx.moveTo(this.x, this.y);
+                        
+                        let cx = this.x;
+                        let cy = this.y;
+                        const steps = 5;
+                        
+                        for (let s = 1; s < steps; s++) {
+                            const t = s / steps;
+                            const targetX = this.x + (this.boltTarget.x - this.x) * t;
+                            const targetY = this.y + (this.boltTarget.y - this.y) * t;
+                            const roughness = 40;
+                            cx = targetX + (Math.random() - 0.5) * roughness;
+                            cy = targetY + (Math.random() - 0.5) * roughness;
+                            ctx.lineTo(cx, cy);
+                        }
+                        ctx.lineTo(this.boltTarget.x, this.boltTarget.y); 
+                        ctx.stroke();
+                    }
+                }
+                
+                // Core
+                ctx.fillStyle = '#fff';
+                ctx.shadowBlur = 35; ctx.shadowColor = '#2563eb';
+                ctx.beginPath(); ctx.arc(this.x, this.y, 7, 0, Math.PI*2); ctx.fill();
+                ctx.restore();
+
+            } else {
+                ctx.fillStyle = this.color; ctx.globalAlpha = 0.2;
+                for(let p of this.trail) { ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); }
+                ctx.globalAlpha = 1.0; ctx.beginPath(); ctx.arc(this.x, this.y, 6.6, 0, Math.PI * 2);
+                ctx.fillStyle = this.color; ctx.fill();
+            }
         }
     }
 
@@ -476,23 +731,25 @@
 
     function startShift() {
         gameState = 'SHIFTING'; level++; scoreEl.innerText = level;
-        isFastForward = false; ffBtn.classList.remove('ff-active'); ffBtn.classList.add('hidden');
+        isFastForward = false; ffBtn.classList.add('hidden');
         blocks.forEach(b => { b.row++; b.targetY = b.row * blockSize; });
-        const blockHP = Math.floor(level * 1.25);
-        const count = Math.floor(Math.random() * 4) + 2;
-        const usedCols = new Set();
+        
+        const count = Math.floor(Math.random() * 4) + 2; const usedCols = new Set();
         for (let i = 0; i < count; i++) {
             let col; do { col = Math.floor(Math.random() * 7); } while (usedCols.has(col));
-            usedCols.add(col); blocks.push(new Block(col, 0, blockHP, true));
+            usedCols.add(col); blocks.push(new Block(col, 0, Math.floor(level * 1.5), true));
         }
         rebuildGrid();
-        if (blocks.some(b => b.row >= 10 && !b.isBonus)) { gameState = 'GAME_OVER'; gameOverEl.classList.remove('hidden'); persistUserData(); }
+
+        // Game ends when any standard block reaches row 9 (bottom row before red line)
+        if (blocks.some(b => b.row >= 9 && !b.isBonus)) { 
+            gameState = 'GAME_OVER'; 
+            gameOverEl.classList.remove('hidden'); 
+            persistUserData(); 
+        }
     }
 
-    function initGame() { 
-        level = 0; nextBallsCount = 1; ballCountEl.innerText = nextBallsCount; 
-        coinEl.innerText = `🪙 ${coins}`; blocks = []; balls = []; particles = []; startShift(); 
-    }
+    function initGame() { level = 0; nextBallsCount = 1; ballCountEl.innerText = nextBallsCount; coinEl.innerText = `🪙 ${coins}`; blocks = []; balls = []; particles = []; startShift(); }
 
     function fireBalls(angle) {
         gameState = 'FIRING'; returnCount = 0; firstBallReturned = false; balls = []; turnStartTime = Date.now();
@@ -526,26 +783,24 @@
         ctx.clearRect(0, 0, width, height);
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'; ctx.setLineDash([5, 5]);
         ctx.beginPath(); ctx.moveTo(0, height - 15); ctx.lineTo(width, height - 15); ctx.stroke(); ctx.setLineDash([]);
-        
         const skin = SKINS.find(s => s.id === userSettings.activeSkin) || SKINS[0];
-
+        const isSpec = userSettings.activeTrail !== 'none';
+        
+        // Static ball before firing
         if (gameState === 'AIMING' || gameState === 'SHIFTING' || (gameState === 'FIRING' && firstBallReturned)) {
             ctx.beginPath(); ctx.arc(firstBallReturned ? newLaunchX : startX, startY, 6.6, 0, Math.PI * 2);
-            ctx.fillStyle = skin.color; ctx.fill();
+            ctx.fillStyle = isSpec ? '#fff' : skin.color; ctx.fill();
         }
         
-        const its = isFastForward ? 4 : 1;
+        const its = isFastForward ? 5 : 1;
         for (let i = 0; i < its; i++) performUpdate();
         for(let b of blocks) b.draw(); for(let p of particles) p.draw(); for(let ball of balls) ball.draw();
         
         if (gameState === 'AIMING' && isDragging) {
             const angle = Math.atan2(aimY - startY, aimX - startX);
-            // 1. Arrow directly above ball
             const ax = startX + Math.cos(angle) * 45; const ay = startY + Math.sin(angle) * 45;
-            ctx.save(); ctx.translate(ax, ay); ctx.rotate(angle); ctx.beginPath();
-            ctx.moveTo(8, 0); ctx.lineTo(-8, -6); ctx.lineTo(-8, 6); ctx.closePath();
-            ctx.fillStyle = skin.color; ctx.fill(); ctx.restore();
-            // 2. Ball-sized dots following
+            ctx.save(); ctx.translate(ax, ay); ctx.rotate(angle); ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-8, -6); ctx.lineTo(-8, 6); ctx.closePath();
+            ctx.fillStyle = isSpec ? '#fff' : skin.color; ctx.fill(); ctx.restore();
             for (let d = 85; d < 400; d += 40) {
                 ctx.beginPath(); ctx.arc(startX + Math.cos(angle) * d, startY + Math.sin(angle) * d, 6.6, 0, Math.PI * 2);
                 ctx.fillStyle = skin.color; ctx.globalAlpha = 0.25 * (1 - d/400); ctx.fill();
@@ -560,96 +815,63 @@
         const rect = canvas.getBoundingClientRect(); 
         const cx = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX; 
         const cy = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY; 
-        aimX = (cx - rect.left) * (width / rect.width); 
-        aimY = (cy - rect.top) * (height / rect.height); 
+        aimX = (cx - rect.left) * (width / rect.width); aimY = (cy - rect.top) * (height / rect.height); 
         if (aimY > startY - 20) aimY = startY - 20; 
     }
 
     canvas.addEventListener('mousedown', (e) => { if (gameState === 'AIMING') isDragging = true; handleInput(e); });
     window.addEventListener('mousemove', (e) => { if (isDragging) handleInput(e); });
     window.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; fireBalls(Math.atan2(aimY - startY, aimX - startX)); } });
-    
-    canvas.addEventListener('touchstart', (e) => { 
-        if (gameState === 'AIMING') {
-            e.preventDefault(); 
-            isDragging = true; 
-            handleInput(e);
-        }
-    }, { passive: false });
-    
-    window.addEventListener('touchmove', (e) => { 
-        if (isDragging) { 
-            e.preventDefault(); 
-            handleInput(e); 
-        } 
-    }, { passive: false });
-    
-    window.addEventListener('touchend', (e) => { 
-        if (isDragging) { 
-            isDragging = false; 
-            fireBalls(Math.atan2(aimY - startY, aimX - startX)); 
-        } 
-    }, { passive: false });
+    canvas.addEventListener('touchstart', (e) => { if (gameState === 'AIMING') { e.preventDefault(); isDragging = true; handleInput(e); } }, { passive: false });
+    window.addEventListener('touchmove', (e) => { if (isDragging) { e.preventDefault(); handleInput(e); } }, { passive: false });
+    window.addEventListener('touchend', () => { if (isDragging) { isDragging = false; fireBalls(Math.atan2(aimY - startY, aimX - startX)); } });
 
     function updateShopUI() {
         document.getElementById('shop-coins').innerText = coins;
         const container = document.getElementById('shop-container');
-        container.innerHTML = SKINS.map(skin => {
-            const isOwned = userSettings.ownedSkins.includes(skin.id);
-            const isActive = userSettings.activeSkin === skin.id;
-            return `<div class="shop-item ${isOwned ? 'owned' : ''} ${isActive ? 'active' : ''}" data-id="${skin.id}">
-                        <div class="w-8 h-8 rounded-full mb-2 mx-auto" style="background: ${skin.color}; box-shadow: 0 0 10px ${skin.color}"></div>
-                        <div class="text-[11px] font-black uppercase mb-1">${skin.name}</div>
-                        <div class="text-[10px] ${isActive ? 'text-indigo-400' : 'text-slate-500'} font-bold">${isActive ? 'EQUIPPED' : isOwned ? 'EQUIP' : skin.price + ' 🪙'}</div>
-                    </div>`;
+        document.getElementById('tab-skins').classList.toggle('active', currentShopTab === 'skins');
+        document.getElementById('tab-trails').classList.toggle('active', currentShopTab === 'trails');
+
+        const items = currentShopTab === 'skins' ? SKINS : TRAILS;
+        container.innerHTML = items.map(item => {
+            const owned = currentShopTab === 'skins' ? userSettings.ownedSkins.includes(item.id) : userSettings.ownedTrails.includes(item.id);
+            const active = currentShopTab === 'skins' ? userSettings.activeSkin === item.id : userSettings.activeTrail === item.id;
+            
+            let thumb = `<div class="w-8 h-8 rounded-full" style="background:${item.color || '#fff'}"></div>`;
+            if (item.effect === 'solar') thumb = `<div class="solar-thumb"></div>`;
+            if (item.effect === 'static') thumb = `<div class="thunder-thumb"></div>`;
+
+            return `<div class="shop-item ${owned ? 'owned' : ''} ${active ? 'active' : ''}" data-id="${item.id}">
+                <div class="thumbnail-box">${thumb}</div>
+                <div class="text-[11px] font-black uppercase">${item.name}</div>
+                <div class="text-[9px] font-bold mt-1 ${active ? 'text-indigo-400' : 'text-slate-500'}">
+                    ${active ? 'EQUIPPED' : owned ? 'EQUIP' : item.price + ' 🪙'}
+                </div>
+            </div>`;
         }).join('');
+
         document.querySelectorAll('.shop-item').forEach(el => {
-            el.onclick = async (e) => {
-                e.preventDefault();
-                const id = el.dataset.id; const skin = SKINS.find(s => s.id === id);
-                if (userSettings.ownedSkins.includes(id)) { userSettings.activeSkin = id; }
-                else if (coins >= skin.price) { coins -= skin.price; userSettings.ownedSkins.push(id); userSettings.activeSkin = id; await persistUserData(); }
-                updateShopUI();
+            el.onclick = async () => {
+                const id = el.dataset.id;
+                if (currentShopTab === 'skins') {
+                    const skin = SKINS.find(s => s.id === id);
+                    if (userSettings.ownedSkins.includes(id)) userSettings.activeSkin = id;
+                    else if (coins >= skin.price) { coins -= skin.price; userSettings.ownedSkins.push(id); userSettings.activeSkin = id; }
+                } else {
+                    const trail = TRAILS.find(t => t.id === id);
+                    if (userSettings.ownedTrails.includes(id)) userSettings.activeTrail = id;
+                    else if (coins >= trail.price) { coins -= trail.price; userSettings.ownedTrails.push(id); userSettings.activeTrail = id; }
+                }
+                updateShopUI(); persistUserData();
             };
         });
     }
 
-    const initAuth = async () => { 
-        if (!auth) return;
-        try {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); 
-            else await signInAnonymously(auth); 
-        } catch(e) {}
-    };
+    const initAuth = async () => { if (auth) try { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); else await signInAnonymously(auth); } catch(e) {} };
     initAuth();
-    
-    if (auth) {
-        onAuthStateChanged(auth, async (user) => {
-            currentUser = user;
-            if (user && db) {
-                try {
-                    const scoreRef = doc(db, 'artifacts', appId, 'public', 'data', 'scores', user.uid);
-                    const docSnap = await getDoc(scoreRef);
-                    if (docSnap.exists()) {
-                        const data = docSnap.data(); 
-                        highLevel = data.level || 1; 
-                        coins = data.coins || 0; 
-                        document.getElementById('local-best').innerText = highLevel;
-                        if (data.settings) userSettings = {...userSettings, ...data.settings};
-                        if (data.name) userSettings.name = data.name;
-                    }
-                } catch(e) {}
-            }
-        });
-    }
+    if (auth) onAuthStateChanged(auth, async (user) => { currentUser = user; if (user && db) try { const docSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', user.uid)); if (docSnap.exists()) { const data = docSnap.data(); highLevel = data.level || 1; coins = data.coins || 0; document.getElementById('local-best').innerText = highLevel; if (data.settings) userSettings = {...userSettings, ...data.settings}; } } catch(e) {} });
 
-    function resize() {
-        const h = window.innerHeight * 0.8; const w = window.innerWidth;
-        if (w / h < 400/600) { canvas.style.width = '100%'; canvas.style.height = 'auto'; }
-        else { canvas.style.height = h + 'px'; canvas.style.width = 'auto'; }
-        canvas.width = 400; canvas.height = 600; width = 400; height = 600; blockSize = width / 7;
-        startX = width / 2; startY = height - 25;
-    }
+    function resize() { const h = window.innerHeight * 0.8; canvas.style.height = h + 'px'; canvas.width = 400; canvas.height = 600; startX = 200; startY = 575; }
     window.addEventListener('resize', resize); resize(); requestAnimationFrame(gameLoop);
 </script>
 </body>
