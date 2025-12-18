@@ -60,6 +60,10 @@
             text-align: center;
             padding: 20px;
         }
+        /* Higher z-index for sub-menus to ensure they sit on top of main menu */
+        #shop-overlay, #leaderboard-overlay, #settings-overlay {
+            z-index: 110;
+        }
         /* Fallback for hidden class */
         .hidden {
             display: none !important;
@@ -71,18 +75,22 @@
             padding: 1rem 3rem;
             border-radius: 9999px;
             box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
-            transition: all 0.2s ease;
+            transition: all 0.1s ease;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             cursor: pointer;
+            border: none;
+            outline: none;
+            pointer-events: auto;
         }
-        .btn-neon:active { transform: scale(0.9); }
+        .btn-neon:active { transform: scale(0.95); background: #4338ca; }
+        
         .leaderboard-list { width: 100%; max-width: 300px; max-height: 250px; overflow-y: auto; margin-top: 1rem; }
         .leaderboard-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .ff-active { background-color: #ef4444 !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6) !important; }
         
         .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 320px; margin-top: 1rem; }
-        .shop-item { background: #1e293b; border: 2px solid #334155; border-radius: 16px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .shop-item { background: #1e293b; border: 2px solid #334155; border-radius: 16px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; pointer-events: auto; }
         .shop-item.owned { border-color: #475569; }
         .shop-item.active { border-color: #818cf8; background: #2e3b52; }
         .shop-item:active { transform: scale(0.95); }
@@ -97,9 +105,9 @@
         <p class="text-slate-400 mb-8 uppercase text-xs tracking-[0.3em]">Master the bounce</p>
         <div class="flex flex-col gap-3 w-full max-w-[260px]">
             <button id="play-btn" class="btn-neon">Play Game</button>
-            <button id="shop-btn" class="bg-indigo-900/40 border border-indigo-500/50 hover:bg-indigo-800/40 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest">Shop</button>
-            <button id="leaderboard-btn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest">Leaderboard</button>
-            <button id="settings-btn" class="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold py-3 rounded-full transition-all uppercase text-xs tracking-widest">Settings</button>
+            <button id="shop-btn" class="bg-indigo-900/40 border border-indigo-500/50 hover:bg-indigo-800/40 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest pointer-events-auto">Shop</button>
+            <button id="leaderboard-btn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-full transition-all uppercase text-sm tracking-widest pointer-events-auto">Leaderboard</button>
+            <button id="settings-btn" class="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold py-3 rounded-full transition-all uppercase text-xs tracking-widest pointer-events-auto">Settings</button>
         </div>
         <div class="mt-8 text-[10px] text-slate-500 uppercase tracking-widest">Best Level: <span id="local-best">1</span></div>
     </div>
@@ -113,7 +121,7 @@
             </div>
         </div>
         <div class="shop-grid" id="shop-container"></div>
-        <button id="close-shop-btn" class="mt-8 text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest py-2">Close</button>
+        <button id="close-shop-btn" class="mt-8 text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest py-2 pointer-events-auto">Close</button>
     </div>
 
     <!-- Leaderboard -->
@@ -121,7 +129,7 @@
         <h2 class="text-3xl font-black mb-6 tracking-tight italic">GLOBAL RANKINGS</h2>
         <div id="leaderboard-loading" class="text-slate-500 animate-pulse">Loading scores...</div>
         <div id="leaderboard-content" class="leaderboard-list hidden"></div>
-        <button id="back-to-menu-btn" class="mt-8 text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest py-2">Back to Menu</button>
+        <button id="back-to-menu-btn" class="mt-8 text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest py-2 pointer-events-auto">Back to Menu</button>
     </div>
 
     <!-- Settings -->
@@ -130,12 +138,12 @@
         <div class="w-full max-w-[300px]">
             <div class="text-left mb-4">
                 <label class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2 block">Player Identity</label>
-                <input type="text" id="settings-name" maxlength="12" placeholder="Update Name" class="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-xl font-bold focus:outline-none focus:border-indigo-500 transition-colors">
+                <input type="text" id="settings-name" maxlength="12" placeholder="Update Name" class="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-xl font-bold focus:outline-none focus:border-indigo-500 transition-colors pointer-events-auto">
             </div>
             <div class="flex justify-between items-center py-4 border-b border-slate-700">
                 <span class="text-xs uppercase font-bold text-slate-400 tracking-widest">Haptic Feedback</span>
                 <label class="switch relative inline-block w-11 h-6">
-                    <input type="checkbox" id="vibration-toggle" checked class="opacity-0 w-0 h-0 peer">
+                    <input type="checkbox" id="vibration-toggle" checked class="opacity-0 w-0 h-0 peer pointer-events-auto">
                     <span class="absolute inset-0 cursor-pointer bg-slate-700 rounded-full transition peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition peer-checked:after:translate-x-5"></span>
                 </label>
             </div>
@@ -172,7 +180,7 @@
         <h2 class="text-6xl font-black text-white mb-2 tracking-tighter">GAME OVER</h2>
         <p id="final-score" class="text-2xl text-indigo-400 mb-8 font-bold italic">REACHED LEVEL 1</p>
         <button id="restart-btn" class="btn-neon mb-4">Try Again</button>
-        <button id="menu-from-over-btn" class="text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest">Main Menu</button>
+        <button id="menu-from-over-btn" class="text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest pointer-events-auto">Main Menu</button>
     </div>
 </div>
 
@@ -181,11 +189,17 @@
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const firebaseConfig = JSON.parse(__firebase_config);
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'ball-brick-breaker';
+    // --- Safety initialization ---
+    let db, auth, appId;
+    try {
+        const firebaseConfig = JSON.parse(__firebase_config || "{}");
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+        appId = typeof __app_id !== 'undefined' ? __app_id : 'ball-brick-breaker';
+    } catch (e) {
+        console.error("Firebase init failed, running in local-only mode.");
+    }
 
     const SKINS = [
         { id: 'default', name: 'Classic', color: '#ffffff', price: 0 },
@@ -227,15 +241,105 @@
     const BALL_SPEED = 10.5; const FIRE_INTERVAL = 70; const FF_THRESHOLD_MS = 3000;
     const MAX_PARTICLES = 100;
 
+    // --- UI Button Handlers (Immediate setup for responsiveness) ---
+    const registerUIHandlers = () => {
+        const setupBtn = (id, callback) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            // Use pointerdown for faster feel, but click as primary
+            btn.onclick = (e) => {
+                e.preventDefault();
+                callback();
+            };
+        };
+
+        setupBtn('play-btn', () => {
+            menuOverlay.classList.add('hidden');
+            gameHud.classList.remove('opacity-0');
+            gameFooter.classList.remove('opacity-0');
+            initGame();
+            gameState = 'AIMING';
+        });
+
+        setupBtn('shop-btn', () => {
+            menuOverlay.classList.add('hidden');
+            shopOverlay.classList.remove('hidden');
+            updateShopUI();
+        });
+
+        setupBtn('leaderboard-btn', () => {
+            menuOverlay.classList.add('hidden');
+            lbOverlay.classList.remove('hidden');
+            showLeaderboard();
+        });
+
+        setupBtn('settings-btn', () => {
+            menuOverlay.classList.add('hidden');
+            stOverlay.classList.remove('hidden');
+            document.getElementById('settings-name').value = userSettings.name;
+        });
+
+        setupBtn('close-shop-btn', () => {
+            shopOverlay.classList.add('hidden');
+            menuOverlay.classList.remove('hidden');
+        });
+
+        setupBtn('back-to-menu-btn', () => {
+            lbOverlay.classList.add('hidden');
+            menuOverlay.classList.remove('hidden');
+        });
+
+        setupBtn('restart-btn', () => {
+            gameOverEl.classList.add('hidden');
+            initGame();
+            gameState = 'AIMING';
+        });
+
+        setupBtn('menu-from-over-btn', () => {
+            gameOverEl.classList.add('hidden');
+            menuOverlay.classList.remove('hidden');
+            gameHud.classList.add('opacity-0');
+            gameFooter.classList.add('opacity-0');
+            gameState = 'MENU';
+        });
+
+        setupBtn('exit-to-menu-btn', () => {
+            gameState = 'MENU';
+            menuOverlay.classList.remove('hidden');
+            gameHud.classList.add('opacity-0');
+            gameFooter.classList.add('opacity-0');
+            balls = []; blocks = []; particles = [];
+        });
+
+        setupBtn('save-settings-btn', () => {
+            userSettings.name = document.getElementById('settings-name').value.trim() || "Anonymous";
+            userSettings.vibrationEnabled = document.getElementById('vibration-toggle').checked;
+            stOverlay.classList.add('hidden');
+            menuOverlay.classList.remove('hidden');
+            persistUserData();
+        });
+
+        ffBtn.onclick = () => {
+            if (gameState !== 'FIRING') return;
+            isFastForward = !isFastForward;
+            ffBtn.classList.toggle('ff-active', isFastForward);
+        };
+    };
+
+    registerUIHandlers();
+
     async function persistUserData() {
-        if (!currentUser) return;
-        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'scores', currentUser.uid);
-        await setDoc(userRef, { uid: currentUser.uid, name: userSettings.name, level: highLevel, coins: coins, settings: userSettings, timestamp: Date.now() }, { merge: true });
+        if (!currentUser || !db) return;
+        try {
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'scores', currentUser.uid);
+            await setDoc(userRef, { uid: currentUser.uid, name: userSettings.name, level: highLevel, coins: coins, settings: userSettings, timestamp: Date.now() }, { merge: true });
+        } catch(e) {}
     }
 
     async function showLeaderboard() {
         const loading = document.getElementById('leaderboard-loading');
         const content = document.getElementById('leaderboard-content');
+        if (!db) { loading.innerText = "Leaderboard unavailable offline."; return; }
         loading.classList.remove('hidden'); content.classList.add('hidden');
         try {
             const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'scores'));
@@ -465,10 +569,9 @@
     window.addEventListener('mousemove', (e) => { if (isDragging) handleInput(e); });
     window.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; fireBalls(Math.atan2(aimY - startY, aimX - startX)); } });
     
-    // --- Optimized Touch Handling ---
     canvas.addEventListener('touchstart', (e) => { 
         if (gameState === 'AIMING') {
-            e.preventDefault(); // Stop mobile browser interactions
+            e.preventDefault(); 
             isDragging = true; 
             handleInput(e);
         }
@@ -494,10 +597,15 @@
         container.innerHTML = SKINS.map(skin => {
             const isOwned = userSettings.ownedSkins.includes(skin.id);
             const isActive = userSettings.activeSkin === skin.id;
-            return `<div class="shop-item ${isOwned ? 'owned' : ''} ${isActive ? 'active' : ''}" data-id="${skin.id}"><div class="w-8 h-8 rounded-full mb-2 mx-auto" style="background: ${skin.color}; box-shadow: 0 0 10px ${skin.color}"></div><div class="text-[11px] font-black uppercase mb-1">${skin.name}</div><div class="text-[10px] ${isActive ? 'text-indigo-400' : 'text-slate-500'} font-bold">${isActive ? 'EQUIPPED' : isOwned ? 'EQUIP' : skin.price + ' 🪙'}</div></div>`;
+            return `<div class="shop-item ${isOwned ? 'owned' : ''} ${isActive ? 'active' : ''}" data-id="${skin.id}">
+                        <div class="w-8 h-8 rounded-full mb-2 mx-auto" style="background: ${skin.color}; box-shadow: 0 0 10px ${skin.color}"></div>
+                        <div class="text-[11px] font-black uppercase mb-1">${skin.name}</div>
+                        <div class="text-[10px] ${isActive ? 'text-indigo-400' : 'text-slate-500'} font-bold">${isActive ? 'EQUIPPED' : isOwned ? 'EQUIP' : skin.price + ' 🪙'}</div>
+                    </div>`;
         }).join('');
         document.querySelectorAll('.shop-item').forEach(el => {
-            el.onclick = async () => {
+            el.onclick = async (e) => {
+                e.preventDefault();
                 const id = el.dataset.id; const skin = SKINS.find(s => s.id === id);
                 if (userSettings.ownedSkins.includes(id)) { userSettings.activeSkin = id; }
                 else if (coins >= skin.price) { coins -= skin.price; userSettings.ownedSkins.push(id); userSettings.activeSkin = id; await persistUserData(); }
@@ -506,32 +614,34 @@
         });
     }
 
-    document.getElementById('shop-btn').addEventListener('click', () => { menuOverlay.classList.add('hidden'); shopOverlay.classList.remove('hidden'); updateShopUI(); });
-    document.getElementById('close-shop-btn').addEventListener('click', () => { shopOverlay.classList.add('hidden'); menuOverlay.classList.remove('hidden'); });
-    document.getElementById('play-btn').addEventListener('click', () => { menuOverlay.classList.add('hidden'); gameHud.classList.remove('opacity-0'); gameFooter.classList.remove('opacity-0'); initGame(); gameState = 'AIMING'; });
-    document.getElementById('leaderboard-btn').addEventListener('click', () => { menuOverlay.classList.add('hidden'); lbOverlay.classList.remove('hidden'); showLeaderboard(); });
-    document.getElementById('back-to-menu-btn').addEventListener('click', () => { lbOverlay.classList.add('hidden'); menuOverlay.classList.remove('hidden'); });
-    document.getElementById('restart-btn').addEventListener('click', () => { gameOverEl.classList.add('hidden'); initGame(); gameState = 'AIMING'; });
-    document.getElementById('menu-from-over-btn').addEventListener('click', () => { gameOverEl.classList.add('hidden'); menuOverlay.classList.remove('hidden'); gameHud.classList.add('opacity-0'); gameFooter.classList.add('opacity-0'); gameState = 'MENU'; });
-    document.getElementById('exit-to-menu-btn').addEventListener('click', () => { gameState = 'MENU'; menuOverlay.classList.remove('hidden'); gameHud.classList.add('opacity-0'); gameFooter.classList.add('opacity-0'); balls = []; blocks = []; particles = []; });
-    ffBtn.addEventListener('click', () => { if (gameState !== 'FIRING') return; isFastForward = !isFastForward; if (isFastForward) ffBtn.classList.add('ff-active'); else ffBtn.classList.remove('ff-active'); });
-    document.getElementById('settings-btn').addEventListener('click', () => { menuOverlay.classList.add('hidden'); stOverlay.classList.remove('hidden'); document.getElementById('settings-name').value = userSettings.name; });
-    document.getElementById('save-settings-btn').addEventListener('click', () => { userSettings.name = document.getElementById('settings-name').value.trim() || "Anonymous"; userSettings.vibrationEnabled = document.getElementById('vibration-toggle').checked; stOverlay.classList.add('hidden'); menuOverlay.classList.remove('hidden'); persistUserData(); });
-
-    const initAuth = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); else await signInAnonymously(auth); };
+    const initAuth = async () => { 
+        if (!auth) return;
+        try {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); 
+            else await signInAnonymously(auth); 
+        } catch(e) {}
+    };
     initAuth();
-    onAuthStateChanged(auth, async (user) => {
-        currentUser = user;
-        if (user) {
-            const scoreRef = doc(db, 'artifacts', appId, 'public', 'data', 'scores', user.uid);
-            const docSnap = await getDoc(scoreRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data(); highLevel = data.level || 1; coins = data.coins || 0; document.getElementById('local-best').innerText = highLevel;
-                if (data.settings) userSettings = {...userSettings, ...data.settings};
-                if (data.name) userSettings.name = data.name;
+    
+    if (auth) {
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            if (user && db) {
+                try {
+                    const scoreRef = doc(db, 'artifacts', appId, 'public', 'data', 'scores', user.uid);
+                    const docSnap = await getDoc(scoreRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data(); 
+                        highLevel = data.level || 1; 
+                        coins = data.coins || 0; 
+                        document.getElementById('local-best').innerText = highLevel;
+                        if (data.settings) userSettings = {...userSettings, ...data.settings};
+                        if (data.name) userSettings.name = data.name;
+                    }
+                } catch(e) {}
             }
-        }
-    });
+        });
+    }
 
     function resize() {
         const h = window.innerHeight * 0.8; const w = window.innerWidth;
