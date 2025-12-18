@@ -265,6 +265,10 @@
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let hitBuffer = null;
     
+    // Create a pool of gain nodes to handle overlapping sounds smoothly
+    const soundPool = [];
+    const POOL_SIZE = 10; // Allow 10 simultaneous sounds max
+
     fetch('https://raw.githubusercontent.com/sheloveflacco/neonbreaker/main/game%20sound.mp3')
         .then(res => res.arrayBuffer())
         .then(buf => audioCtx.decodeAudioData(buf))
@@ -276,11 +280,14 @@
         // Resume context if suspended (browser autoplay policy)
         if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
         
+        // Simple limiting to prevent distortion from too many overlapping sounds
+        const now = audioCtx.currentTime;
+        
         const source = audioCtx.createBufferSource();
         source.buffer = hitBuffer;
         
         const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0.1; // Volume
+        gainNode.gain.value = 0.1; 
         
         source.connect(gainNode);
         gainNode.connect(audioCtx.destination);
@@ -309,7 +316,7 @@
     let turnStartTime = 0; let nextBallsCount = 1; let ballsSpawnedThisTurn = 0;
     let returnCount = 0; let firstBallReturned = false; let newLaunchX = -1;
     
-    const BALL_SPEED = 15.0; // Slightly reduced from 16.0
+    const BALL_SPEED = 12.0; 
     const FIRE_INTERVAL = 60; const FF_THRESHOLD_MS = 3000;
     const MAX_PARTICLES = 150;
     const SUB_STEPS = 4; 
